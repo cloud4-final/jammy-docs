@@ -124,7 +124,10 @@
 - scope: jammy-5th `infra/aws/*` | violation: `default_tags` 없는 provider 추가 | status: active | source: jammy-5th `infra/aws/providers.tf`, Confluence 13139969
 ### C-AWS-002 · Component 태그
 - rule: `Component` 값은 사용 중인 `edge`(입구), `network`(VPC·서브넷·IGW·라우팅), `ci`(GitHub Actions OIDC 역할)만 쓴다(MUST). 제안 단계 값(`mgmt`, `burst`, `storage`, `dns`)이나 새 값은 이 파일에 먼저 추가해야 한다(MUST).
-- scope: jammy-5th `infra/aws/*` | violation: `Component = "web"` | status: active | source: Confluence 13139969, jammy-5th `infra/aws/oidc.tf`
+- scope: jammy-5th `infra/aws/*` | violation: `Component = "web"` | status: superseded | by: C-AWS-003 | source: Confluence 13139969, jammy-5th `infra/aws/oidc.tf`
+### C-AWS-003 · Component 태그 (files·backup 추가)
+- rule: `Component` 값은 `edge`(입구), `network`(VPC·서브넷·IGW·라우팅), `ci`(GitHub Actions OIDC 역할), `files`(파일 S3 버킷), `backup`(백업 S3 버킷·pgBackRest IAM 사용자)만 쓴다(MUST). 제안 단계 값(`mgmt`, `burst`, `dns`)이나 새 값은 이 파일에 먼저 추가해야 한다(MUST).
+- scope: jammy-5th `infra/aws/*` | violation: `Component = "storage"` | status: active | source: jammy-5th `infra/aws/s3.tf`·`infra/aws/backup_iam.tf`(PR #16·#25)
 
 ## AI 연동
 ### C-AI-001 · 모델 API 경계

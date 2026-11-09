@@ -28,7 +28,7 @@
 
 ### D-20261106-01 · Terraform CI는 lint와 plan 분리, plan은 PR 전용 OIDC 읽기 역할
 - decision: lint(fmt·validate)는 `terraform.yml`, plan은 `terraform-plan.yml`로 나눈다. plan은 `pull_request`에서만 OIDC로 읽기 전용 역할 `jammy-gha-plan`을 빌려 실행하고, apply는 사람이 로컬에서 한다.
-- implies: plan 역할에 쓰기·apply 권한을 주지 않는다. 신뢰 정책 `sub`는 immutable subject 형식(`repo:cloud4-final@<조직ID>/jammy-5th@<레포ID>:pull_request`)을 쓴다. 레포 이름을 바꾸면 신뢰 정책도 함께 바꿔야 한다(sub에 이름이 남음). 포크 PR은 건너뛰고 `pull_request_target`은 쓰지 않는다. 다른 OIDC 역할도 같은 sub 형식을 따른다.
+- implies: plan 역할에 인프라 변경·apply 권한과 state(`aws/terraform.tfstate`) 쓰기 권한을 주지 않는다. 예외로 `use_lockfile` 잠금 파일(`aws/terraform.tfstate.tflock`)의 `s3:PutObject`·`s3:DeleteObject`만 허용한다(없으면 plan이 잠금 단계에서 실패). 신뢰 정책 `sub`는 immutable subject 형식(`repo:cloud4-final@<조직ID>/jammy-5th@<레포ID>:pull_request`)을 쓴다. 레포 이름을 바꾸면 신뢰 정책도 함께 바꿔야 한다(sub에 이름이 남음). 포크 PR은 건너뛰고 `pull_request_target`은 쓰지 않는다. 다른 OIDC 역할도 같은 sub 형식을 따른다.
 - why: plan 역할을 PR 전용으로 좁게 유지하면서, main push에서도 도는 lint가 AWS 없이 계속 동작하게 하기 위해서
 - scope: AWS, CI/CD
 - status: active

@@ -30,7 +30,7 @@ def test_needs_sync_and_banner_idempotency():
     # 두 번 적용해도 배너는 1개만 유지
     banner2 = ap.build_ai_banner("2026-11-06", ["C-NET-002", "D-20261104-01"], "재반영", "newsha1234567890")
     updated2 = ap.apply_banner(updated, banner2)
-    assert updated2.count("[hybrid-docs AI 자동 최신화") == 1
+    assert updated2.count("[jammy-docs AI 자동 최신화") == 1
     assert ap.needs_sync(updated2, "newsha1234567890") is False
 
 

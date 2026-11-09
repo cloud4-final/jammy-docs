@@ -48,7 +48,7 @@ jobs:
         run: >
           python -m md2conf README.md contracts.md decisions.md architecture.md mvp-roles.md
           --root-page 17334273 --skip-update --no-force-valid-url
-          --generated-by "GitHub cloud4-final/hybrid-docs에서 자동 생성 · 직접 수정 금지 (평일 09·13·18시 및 merge 시 갱신)"
+          --generated-by "GitHub cloud4-final/jammy-docs에서 자동 생성 · 직접 수정 금지 (평일 09·13·18시 및 merge 시 갱신)"
       - name: ai-patch-linked-confluence-pages
         env:
           CONFLUENCE_DOMAIN: teamjammyjammy.atlassian.net

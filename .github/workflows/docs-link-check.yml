@@ -1,4 +1,4 @@
-# 코드 repo가 호출하는 공통 check: PR 본문에 링크한 hybrid-docs PR이 merge됐는지 확인한다.
+# 코드 repo가 호출하는 공통 check: PR 본문에 링크한 jammy-docs PR이 merge됐는지 확인한다.
 name: docs-link-check
 on:
   workflow_call:
@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          repository: cloud4-final/hybrid-docs
+          repository: cloud4-final/jammy-docs
           path: _hd
       - uses: actions/setup-python@v7
         with:

@@ -1,7 +1,7 @@
 <!-- confluence-page-id: 17367041 -->
 # 공통 기준 · 파트 간 계약
 
-파트 사이에 같은 값으로 맞춰야 하는 규칙이다. 사람과 리뷰 AI가 함께 읽는다. 변경은 hybrid-docs PR에서 팀원 1명이 승인해야 한다.
+파트 사이에 같은 값으로 맞춰야 하는 규칙이다. 사람과 리뷰 AI가 함께 읽는다. 변경은 jammy-docs PR에서 팀원 1명이 승인해야 한다.
 
 ## 리뷰어 사용법
 - 규칙 1개가 블록 1개다. 위반을 찾으면 규칙 ID를 인용한다(`C-API-002 위반: region에 jammy-a 사용`).
@@ -11,19 +11,19 @@
 ## 네트워크 대역
 ### C-NET-001 · 거점 VM 대역
 - rule: 거점 cp·app VM은 거점 VM 대역(`br-vm`)을 써야 한다(MUST). A 10.10.x.x/24, B 10.20.x.x/24, C 10.30.x.x/24, 게이트웨이 `.1`.
-- scope: hybrid-5th(`infra/*`, `k8s/*`, `scripts/*`), jammy-observability(`site/*`, `hub/*`), jammy-collector(`deploy/*`) | violation: app VM 주소를 10.11.x.121로 지정 | status: active | source: Confluence 13467672
+- scope: jammy-5th(`infra/*`, `k8s/*`, `scripts/*`), jammy-observability(`site/*`, `hub/*`), jammy-collector(`deploy/*`) | violation: app VM 주소를 10.11.x.121로 지정 | status: active | source: Confluence 13467672
 ### C-NET-002 · 거점 DB 대역
 - rule: data VM과 PostgreSQL은 DB 대역(`br-data`)만 써야 한다(MUST). A 10.11.x.x/24, B 10.21.x.x/24, C 10.31.x.x/24, 게이트웨이 `.1`.
 - scope: DB 주소를 쓰는 모든 설정(`DATABASE_URL`, Secret, 방화벽, 관측 target) | violation: DB 주소 10.10.x.130 (망 분리 전 주소) | status: active | source: D-20261104-01
 ### C-NET-003 · AWS VPC 대역
 - rule: AWS 리소스는 VPC 10.200.x.x/16 안에서 서브넷 a·c(각 /24)를 써야 한다(MUST).
-- scope: hybrid-5th `infra/aws/*` | violation: 새 서브넷을 10.10.x.x로 생성 | status: active | source: Confluence 13467672
+- scope: jammy-5th `infra/aws/*` | violation: 새 서브넷을 10.10.x.x로 생성 | status: active | source: Confluence 13467672
 ### C-NET-004 · 새 대역
 - rule: 새 대역은 기존 대역(10.10·10.20·10.30·10.11·10.21·10.31·10.200·192.168·100.64)과 겹치면 안 된다(MUST NOT). 쓰기 전에 이 파일에 먼저 추가해야 한다(MUST).
 - scope: 모든 repo | violation: 이 파일에 없는 대역 10.40.x.x를 코드에 추가 | status: active | source: Confluence 13467672
 ### C-NET-005 · 메시 MTU
 - rule: 거점 사이 Tailscale 통신은 MTU 1280을 전제로 한다. 더 큰 MTU를 가정하면 안 된다(MUST NOT).
-- scope: hybrid-5th 네트워크 설정, 대용량 전송 설정 | violation: 터널 경로에 MTU 1500 강제 | status: active | source: Confluence 13467672
+- scope: jammy-5th 네트워크 설정, 대용량 전송 설정 | violation: 터널 경로에 MTU 1500 강제 | status: active | source: Confluence 13467672
 ### C-NET-006 · burst 대역
 - rule: burst 대역(10.72.x.x 예정)과 규칙을 정해야 한다.
 - status: open | owner: jiwon28, Hongsh6414 (5주차)
@@ -42,19 +42,19 @@
 ## 통신 경로
 ### C-PATH-001 · 서비스 진입
 - rule: 사용자 요청은 AWS 입구(HAProxy, `tag:edge`) → app VM 80/443으로만 들어와야 한다(MUST). cp VM과 data VM을 외부에 노출하면 안 된다(MUST NOT).
-- scope: hybrid-5th(`infra/aws/*`, HAProxy 설정, `k8s/*`) | violation: HAProxy 목적지에 cp VM(.110) 추가 | status: active | source: Confluence 12943383, 13467672
+- scope: jammy-5th(`infra/aws/*`, HAProxy 설정, `k8s/*`) | violation: HAProxy 목적지에 cp VM(.110) 추가 | status: active | source: Confluence 12943383, 13467672
 ### C-PATH-002 · 앱 → DB
 - rule: app VM은 같은 거점 data VM의 5432에 접속한다. 쓰기는 원본 A(10.11.x.130:5432)로 간다. 다른 거점 app VM → 원본 5432 경로가 필요하다.
-- scope: jammy-collector(`DATABASE_URL`), hybrid-5th(방화벽, `k8s/*` Secret) | violation: B app의 `DATABASE_URL`이 10.21.x.130을 쓰기 원본으로 지정 | status: active | source: Confluence 13467672, 16973840
+- scope: jammy-collector(`DATABASE_URL`), jammy-5th(방화벽, `k8s/*` Secret) | violation: B app의 `DATABASE_URL`이 10.21.x.130을 쓰기 원본으로 지정 | status: active | source: Confluence 13467672, 16973840
 ### C-PATH-003 · DB 복제
 - rule: data VM ↔ 다른 거점 data VM(`tag:db`)은 5432로 복제한다. A가 원본이고 B·C는 비동기 streaming 사본이다.
 - scope: PostgreSQL 설정, 방화벽 | violation: B·C 사본에 쓰기 설정 | status: active | source: Confluence 16973840
 ### C-PATH-004 · DB 차단 경로
 - rule: cp VM → data VM 5432·22, app VM → data VM 22, AWS 입구 → data VM은 막아야 한다(MUST). data VM SSH는 팀원 관리 접속만 허용한다.
-- scope: hybrid-5th 방화벽·ACL, K8s 설정 | violation: cp VM의 Pod가 DB에 직접 접속하도록 설정 | status: active | source: D-20261104-01
+- scope: jammy-5th 방화벽·ACL, K8s 설정 | violation: cp VM의 Pod가 DB에 직접 접속하도록 설정 | status: active | source: D-20261104-01
 ### C-PATH-005 · 관리 경로
 - rule: 팀원 PC → 거점 호스트·VM 22, 거점 ↔ 거점 22(data VM 제외), 같은 거점 VM → 거점 호스트는 허용이다. AWS 입구 보안 그룹은 80, 443, UDP 41641만 열고 SSH(22)를 열면 안 된다(MUST NOT). 입구 접속은 SSM으로 한다.
-- scope: hybrid-5th `infra/aws/*`, 방화벽·ACL | violation: 입구 보안 그룹에 22 inbound 추가 | status: active | source: Confluence 13467672
+- scope: jammy-5th `infra/aws/*`, 방화벽·ACL | violation: 입구 보안 그룹에 22 inbound 추가 | status: active | source: Confluence 13467672
 ### C-PATH-006 · 새 포트
 - rule: 위에 없는 새 서비스 포트나 경로는 이 파일에 먼저 추가해야 한다(MUST). 방화벽과 ACL은 네트워크 담당(jiwon28)이 반영한다. 표에 없는 통신은 차단되고 기록된다.
 - scope: 모든 repo | violation: 이 파일에 없는 포트 9000을 서비스 노출에 사용 | status: active | source: Confluence 13467672
@@ -73,7 +73,7 @@
 ## collector API
 ### C-API-001 · 이미지와 포트
 - rule: collector 이미지는 `ghcr.io/cloud4-final/jammy-collector:sha-<commit>`이다(main merge 시 자동 게시). 컨테이너 포트는 8000이다. 배포는 `latest` 대신 `sha-` tag를 써야 한다(MUST).
-- scope: hybrid-5th `k8s/*`, jammy-observability `hub/*`(demo), jammy-collector `deploy/*` | violation: `image: ghcr.io/cloud4-final/jammy-collector:latest` | status: active | source: jammy-collector README §1
+- scope: jammy-5th `k8s/*`, jammy-observability `hub/*`(demo), jammy-collector `deploy/*` | violation: `image: ghcr.io/cloud4-final/jammy-collector:latest` | status: active | source: jammy-collector README §1
 ### C-API-002 · region 값
 - rule: 요청 필드 `region`은 `aws`, `site-a`, `site-b`, `site-c` 중 하나여야 한다(MUST). `SITE_ID`(`jammy-a`)와 섞으면 안 된다(MUST NOT). 다르면 400이 난다.
 - scope: collector `POST /api/v1/events`를 호출하는 모든 코드 | violation: `"region": "jammy-a"` | status: active | source: jammy-collector README §3
@@ -82,7 +82,7 @@
 - scope: jammy-collector `src/*`, collector 호출 코드 | violation: 중복 이벤트에 409 반환으로 변경 | status: active | source: jammy-collector README §3
 ### C-API-004 · env
 - rule: 필수 env는 `DATABASE_URL`(쓰기 원본). 선택 env는 `DATABASE_READ_URL`, `SITE_ID`, `DEPLOY_ENV`(`dev`/`stage`/`prod`), `DB_POOL_MIN`, `DB_POOL_MAX`, `OTEL_SERVICE_NAME`(기본 `mobility-collector`), `OTEL_EXPORTER_OTLP_ENDPOINT`. 승격 때는 코드 변경 없이 Secret의 `DATABASE_URL`·`DATABASE_READ_URL`만 바꾼다(MUST).
-- scope: jammy-collector, hybrid-5th `k8s/*` | violation: env 이름 `DB_URL` 사용 | status: active | source: jammy-collector README §2, §4
+- scope: jammy-collector, jammy-5th `k8s/*` | violation: env 이름 `DB_URL` 사용 | status: active | source: jammy-collector README §2, §4
 ### C-API-005 · 로그의 payload
 - rule: `payload` 원문을 로그에 남기면 안 된다(MUST NOT).
 - scope: jammy-collector, collector 로그 관측 설정 | violation: `logger.info(payload)` | status: active | source: jammy-collector README §5
@@ -93,7 +93,7 @@
 ## DB
 ### C-DB-001 · 원본과 마이그레이션
 - rule: 쓰기 원본은 A(10.11.x.130:5432)다. 마이그레이션(`python -m src.migrate`)은 쓰기 원본에만 실행해야 한다(MUST).
-- scope: jammy-collector, hybrid-5th `k8s/*`(Job, initContainer) | violation: 모든 거점 Pod 시작 시 마이그레이션 실행 | status: active | source: jammy-collector README §4, Confluence 16973840
+- scope: jammy-collector, jammy-5th `k8s/*`(Job, initContainer) | violation: 모든 거점 Pod 시작 시 마이그레이션 실행 | status: active | source: jammy-collector README §4, Confluence 16973840
 ### C-DB-002 · 승격
 - rule: 사본 승격은 기존 원본 격리와 쓰기 원본 1개 확인을 포함한 공동 절차로만 해야 한다(MUST). 자동 승격 코드를 단독으로 추가하면 안 된다(MUST NOT). 담당은 HYE0NWEST, jiwon28, daji0713이다.
 - scope: 모든 repo | violation: 장애 감지 시 B를 자동 승격하는 script | status: active | source: Confluence 12943361
@@ -107,7 +107,7 @@
 ## 관측
 ### C-OBS-001 · label
 - rule: metric label은 `site`(C-NAME-001 값), `layer`(`host`, `vm`, `k8s-node`, `pod`, `app`), `vantage`(관측 시점 거점, 거점 내부 수집은 `""`), `target_site`(블랙박스 대상 거점)를 쓴다(MUST).
-- scope: jammy-observability, jammy-collector `/metrics`, hybrid-5th 관측 설정 | violation: label `host_site` 사용 | status: active | source: jammy-observability README §2
+- scope: jammy-observability, jammy-collector `/metrics`, jammy-5th 관측 설정 | violation: label `host_site` 사용 | status: active | source: jammy-observability README §2
 ### C-OBS-002 · 고유 ID label 금지
 - rule: `event_id`, `vehicle_id`, `trace_id` 같은 고유 ID를 metric label에 넣으면 안 된다(MUST NOT). 고유 ID는 Loki 로그와 Tempo trace로만 추적한다.
 - scope: metric을 만드는 모든 코드 | violation: `counter.labels(vehicle_id=...)` | status: active | source: jammy-observability README §2
@@ -118,10 +118,10 @@
 ## AWS
 ### C-AWS-001 · 필수 태그
 - rule: 모든 AWS 리소스에 `Project=jammy`, `Part`, `Owner`, `ManagedBy`(Terraform `default_tags`)와 `Name`을 붙여야 한다(MUST).
-- scope: hybrid-5th `infra/aws/*` | violation: `default_tags` 없는 provider 추가 | status: active | source: hybrid-5th `infra/aws/providers.tf`, Confluence 13139969
+- scope: jammy-5th `infra/aws/*` | violation: `default_tags` 없는 provider 추가 | status: active | source: jammy-5th `infra/aws/providers.tf`, Confluence 13139969
 ### C-AWS-002 · Component 태그
 - rule: `Component` 값은 사용 중인 `edge`(입구), `network`(VPC·서브넷·IGW·라우팅), `ci`(GitHub Actions OIDC 역할)만 쓴다(MUST). 제안 단계 값(`mgmt`, `burst`, `storage`, `dns`)이나 새 값은 이 파일에 먼저 추가해야 한다(MUST).
-- scope: hybrid-5th `infra/aws/*` | violation: `Component = "web"` | status: active | source: Confluence 13139969, hybrid-5th `infra/aws/oidc.tf`
+- scope: jammy-5th `infra/aws/*` | violation: `Component = "web"` | status: active | source: Confluence 13139969, jammy-5th `infra/aws/oidc.tf`
 
 ## AI 연동
 ### C-AI-001 · 모델 API 경계
@@ -140,7 +140,7 @@
 - scope: 모든 repo | violation: Python 3.11 이하, PostgreSQL 16 이하, Terraform 1.9 이하 사용 | status: active | source: Confluence 4194323, 6258692, 13172739
 ### C-VER-003 · 관측 스택 최소 버전
 - rule: 관측 컴포넌트는 `Prometheus >= 3.13.5`, `Grafana >= 13.2.5`, `Loki >= 3.7.7`, `Tempo >= 3.1.1`, `Alloy >= 1.21.3`, `Alertmanager >= 0.34.2`, `node_exporter >= 1.12.1`, `blackbox_exporter >= 0.29.1` 이상으로 통일한다(SHOULD).
-- scope: jammy-observability(`hub/*`, `site/*`), hybrid-5th(`observability/*`) | violation: Prometheus v2.x 또는 Grafana 11.x 등 2년 전 구버전 사용 | status: active | source: jammy-observability `site/versions.env`, `hub/compose.yaml`
+- scope: jammy-observability(`hub/*`, `site/*`), jammy-5th(`observability/*`) | violation: Prometheus v2.x 또는 Grafana 11.x 등 2년 전 구버전 사용 | status: active | source: jammy-observability `site/versions.env`, `hub/compose.yaml`
 ### C-VER-004 · GitHub Actions 최소 버전
 - rule: CI 워크플로 액션은 `actions/checkout@v7`, `actions/setup-python@v7`, `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/metadata-action@v6`, `docker/build-push-action@v6` 이상(최신 `@v7`), `hashicorp/setup-terraform@v4`, `dorny/paths-filter@v4`, `gitleaks >= v8.30.1`을 쓴다(SHOULD).
 - scope: 모든 repo `.github/workflows/*` | violation: `actions/checkout@v4`, `setup-python@v5`, `ludeeus/action-shellcheck@master` 사용 | status: active | source: Confluence 8126485

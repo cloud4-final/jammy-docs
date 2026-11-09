@@ -1,7 +1,7 @@
 <!-- confluence-page-id: 17399809 -->
 # 공통 기준 · 결정 기록
 
-팀원 1명 이상이 승인한 결정이다. 사람과 리뷰 AI가 함께 읽는다. 변경은 hybrid-docs PR로만 한다.
+팀원 1명 이상이 승인한 결정이다. 사람과 리뷰 AI가 함께 읽는다. 변경은 jammy-docs PR로만 한다.
 
 ## 리뷰어 사용법
 
@@ -10,13 +10,13 @@
 - `status: active`만 적용한다. `status: superseded`는 적용하지 않고 `by`가 가리키는 결정을 따른다.
 - 같은 날짜 안에서는 번호가 클수록 나중 결정이다.
 
-### D-20261105-01 · 팀 기준 문서는 hybrid-docs
-- decision: 파트 간 통일값은 `contracts.md`, 팀 결정은 이 파일에 둔다. GitHub `cloud4-final/hybrid-docs` main이 기준이고, Confluence `0. 공통 기준`은 읽기용 사본이다.
-- implies: 통일값이나 방향을 바꾸는 코드 PR은 hybrid-docs PR 링크를 본문에 적어야 한다. 링크한 PR이 merge되기 전에는 `docs-link-check`가 실패한다.
+### D-20261105-01 · 팀 기준 문서는 jammy-docs
+- decision: 파트 간 통일값은 `contracts.md`, 팀 결정은 이 파일에 둔다. GitHub `cloud4-final/jammy-docs` main이 기준이고, Confluence `0. 공통 기준`은 읽기용 사본이다.
+- implies: 통일값이나 방향을 바꾸는 코드 PR은 jammy-docs PR 링크를 본문에 적어야 한다. 링크한 PR이 merge되기 전에는 `docs-link-check`가 실패한다.
 - why: 팀원마다 AI가 서로 다른 설계를 기준으로 작업하는 문제를 막기 위해서
 - scope: 전체
 - status: active
-- source: hybrid-docs#1
+- source: jammy-docs#1
 
 ### D-20261104-01 · 거점 안 망 분리
 - decision: 세 거점 모두 data VM만 `br-data`와 DB 대역(10.11·10.21·10.31.x.x/24)으로 옮긴다. cp·app VM 주소는 그대로다.

@@ -7,9 +7,9 @@ import docs_link  # noqa: E402
 
 BODY = (
     "변경 설명\n"
-    "https://github.com/cloud4-final/hybrid-docs/pull/12 와 "
-    "https://github.com/cloud4-final/hybrid-docs/pull/15\n"
-    "https://github.com/cloud4-final/hybrid-5th/pull/3"
+    "https://github.com/cloud4-final/jammy-docs/pull/12 와 "
+    "https://github.com/cloud4-final/jammy-docs/pull/15\n"
+    "https://github.com/cloud4-final/jammy-5th/pull/3"
 )
 
 
@@ -35,7 +35,7 @@ def test_docs_link_check_passes_without_links():
 
 
 def test_docs_link_check_dedupes():
-    body = "https://github.com/cloud4-final/hybrid-docs/pull/7 https://github.com/cloud4-final/hybrid-docs/pull/7"
+    body = "https://github.com/cloud4-final/jammy-docs/pull/7 https://github.com/cloud4-final/jammy-docs/pull/7"
     calls = []
     docs_link.docs_link_check(body, merged=lambda n: calls.append(n) or True)
     assert calls == [7]

@@ -1,4 +1,4 @@
-"""hybrid-docs의 C-/D-/A-/M- 블록과 연결된 기존 Confluence 문서를 AI로 최신화한다.
+"""jammy-docs의 C-/D-/A-/M- 블록과 연결된 기존 Confluence 문서를 AI로 최신화한다.
 
 - 각 블록의 source 필드에 적힌 Confluence 페이지 ID를 추출한다 ('0. 공통 기준' 자체 페이지들은 제외).
 - Confluence Storage Format은 HTML 주석을 제거하므로, Info 패널 안의 <code>sync-sha:<sha></code>로 변경 여부를 판정한다.
@@ -29,13 +29,13 @@ SELF_PAGE_IDS = {"17334273", "17367041", "17399809", "18350082", "18153491"}
 CONFLUENCE_REF = re.compile(r"Confluence\s+([\d,\s]+)")
 PAGE_ID_TOKEN = re.compile(r"\b(\d{5,12})\b")
 SYNC_SHA_RE = re.compile(r"sync-sha:([A-Za-z0-9_-]+)")
-# Confluence가 렌더링한 Info 매크로 중 "[hybrid-docs AI 자동 최신화"를 포함하는 블록과 레거시 주석 배너 모두 매칭
+# Confluence가 렌더링한 Info 매크로 중 "[jammy-docs AI 자동 최신화" (및 구 명칭)를 포함하는 블록과 레거시 주석 배너 모두 매칭
 BANNER_MACRO_RE = re.compile(
-    r"(?:<!--\s*hybrid-docs-ai-banner-start\s*-->\s*)?"
-    r"(?:<!--\s*hybrid-docs-sync-sha:\s*[A-Za-z0-9_-]+\s*-->\s*)?"
+    r"(?:<!--\s*(?:jammy-docs|hybrid-docs)-ai-banner-start\s*-->\s*)?"
+    r"(?:<!--\s*(?:jammy-docs|hybrid-docs)-sync-sha:\s*[A-Za-z0-9_-]+\s*-->\s*)?"
     r"<ac:structured-macro\b[^>]*ac:name=\"info\"[^>]*>"
-    r"<ac:rich-text-body><p><strong>\[hybrid-docs AI 자동 최신화.*?</ac:structured-macro>"
-    r"(?:\s*<!--\s*hybrid-docs-ai-banner-end\s*-->)?",
+    r"<ac:rich-text-body><p><strong>\[(?:jammy-docs|hybrid-docs) AI 자동 최신화.*?</ac:structured-macro>"
+    r"(?:\s*<!--\s*(?:jammy-docs|hybrid-docs)-ai-banner-end\s*-->)?",
     re.S,
 )
 MASKED_IP_RE = re.compile(r"\b\d{1,3}\.\d{1,3}\.x\.(?:x|\d{1,3})\b")
@@ -94,13 +94,13 @@ def needs_sync(storage_html: str, target_sha: str) -> bool:
 def build_ai_banner(date_str: str, block_ids: list[str], summary: str, target_sha: str) -> str:
     """Confluence Storage Format 상단에 삽입할 AI 동기화 내역 Info 패널을 만든다."""
     ids_text = html.escape(", ".join(block_ids))
-    summary_text = html.escape(summary.strip() or "팀 기준(hybrid-docs) 최신 규칙·결정 반영")
+    summary_text = html.escape(summary.strip() or "팀 기준(jammy-docs) 최신 규칙·결정 반영")
     sha_text = html.escape(target_sha)
     return (
         '<ac:structured-macro ac:name="info">'
         "<ac:rich-text-body>"
-        f"<p><strong>[hybrid-docs AI 자동 최신화 · {html.escape(date_str)}]</strong> "
-        '원본 기준: <a href="https://github.com/cloud4-final/hybrid-docs">cloud4-final/hybrid-docs</a> '
+        f"<p><strong>[jammy-docs AI 자동 최신화 · {html.escape(date_str)}]</strong> "
+        '원본 기준: <a href="https://github.com/cloud4-final/jammy-docs">cloud4-final/jammy-docs</a> '
         f"(<code>sync-sha:{sha_text}</code>)</p>"
         f"<p>연결된 기준 ID: <code>{ids_text}</code></p>"
         f"<p>최근 반영 요약: {summary_text}</p>"
@@ -130,7 +130,7 @@ def check_ip_mask_leak(before_html: str, after_html: str) -> list[str]:
 def parse_llm_response(raw_text: str) -> tuple[str, list[tuple[str, str]]]:
     """LLM 응답에서 <summary>와 <replace><target>...<new>...</replace> 목록을 추출한다."""
     summary_match = SUMMARY_TAG_RE.search(raw_text)
-    summary = summary_match.group(1).strip() if summary_match else "팀 기준(hybrid-docs) 최신 규칙·결정 동기화"
+    summary = summary_match.group(1).strip() if summary_match else "팀 기준(jammy-docs) 최신 규칙·결정 동기화"
     replacements = [
         (m.group(1).strip(), m.group(2).strip())
         for m in REPLACEMENTS_TAG_RE.finditer(raw_text)
@@ -188,16 +188,16 @@ def select_llm_provider(env: Optional[dict[str, str]] = None) -> Optional[tuple[
 def build_prompt(page_title: str, current_html: str, blocks: list[dict[str, str]]) -> str:
     blocks_json = json.dumps(blocks, ensure_ascii=False, indent=2)
     return f"""당신은 팀 아키텍처·운영 문서 관리 AI다.
-GitHub `cloud4-final/hybrid-docs`의 최신 규칙·결정 블록을 기준으로, 아래 Confluence 페이지의 Storage Format XHTML 본문 중 **바뀌었거나 옛 상태(예: 미적용, 합의 대기, 제외 등)로 남아 있는 부분만** 찾아 최신화하라.
+GitHub `cloud4-final/jammy-docs`의 최신 규칙·결정 블록을 기준으로, 아래 Confluence 페이지의 Storage Format XHTML 본문 중 **바뀌었거나 옛 상태(예: 미적용, 합의 대기, 제외 등)로 남아 있는 부분만** 찾아 최신화하라.
 
 ## 대상 Confluence 페이지 제목
 {page_title}
 
-## 적용할 hybrid-docs 최신 블록 (JSON)
+## 적용할 jammy-docs 최신 블록 (JSON)
 {blocks_json}
 
 ## 절대 지켜야 할 안전 규칙
-1. **Confluence 내부의 실제 IP 보존**: hybrid-docs는 Public 저장소라서 IP가 `10.10.x.110`처럼 `x`로 가려져 있다. Confluence 본문에 이미 실제 숫자 IP(예: `10.10.1.110`)가 적혀 있다면 절대 `x`로 덮어쓰지 마라.
+1. **Confluence 내부의 실제 IP 보존**: jammy-docs는 Public 저장소라서 IP가 `10.10.x.110`처럼 `x`로 가려져 있다. Confluence 본문에 이미 실제 숫자 IP(예: `10.10.1.110`)가 적혀 있다면 절대 `x`로 덮어쓰지 마라.
 2. **기존 문서 구조 보존**: 전체 문서를 다시 출력하지 말고, 고쳐야 할 정확한 부분 문자열(`<target>`)과 바꿀 문자열(`<new>`)만 출력하라. `<target>`은 현재 Confluence XHTML에 있는 문자열과 글자 그대로 일치해야 한다.
 3. **응답 형식**: 반드시 아래 태그 형식으로만 응답하라. 고칠 문단이 없으면 `<summary>`만 출력하라.
 
@@ -326,7 +326,7 @@ def resolve_confluence_creds(env: Optional[dict[str, str]] = None) -> Optional[t
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description="hybrid-docs 변경사항을 기존 Confluence 페이지에 AI로 반영")
+    parser = argparse.ArgumentParser(description="jammy-docs 변경사항을 기존 Confluence 페이지에 AI로 반영")
     parser.add_argument("--apply", action="store_true", help="실제 Confluence 페이지 업데이트 수행")
     parser.add_argument("--dry-run", action="store_true", help="대상 페이지와 블록 매핑만 확인 (기본값)")
     parser.add_argument("--page-id", help="특정 Confluence 페이지 ID만 처리")
@@ -407,7 +407,7 @@ def main(argv: list[str]) -> int:
                 title,
                 final_html,
                 version_num + 1,
-                f"hybrid-docs AI sync ({', '.join(block_ids[:5])})",
+                f"jammy-docs AI sync ({', '.join(block_ids[:5])})",
             )
             updated_count += 1
             print(f"[updated] {pid} ({title}) v{version_num + 1} (patches={applied_patches}): {summary}")

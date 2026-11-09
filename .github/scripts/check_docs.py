@@ -1,4 +1,4 @@
-"""hybrid-docs 문서 검사: 가리지 않은 IPv4, Confluence page ID, 최대 줄 수, 블록 형식."""
+"""jammy-docs 문서 검사: 가리지 않은 IPv4, Confluence page ID, 최대 줄 수, 블록 형식."""
 import argparse
 import re
 import sys

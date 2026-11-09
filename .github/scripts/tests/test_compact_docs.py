@@ -22,7 +22,7 @@ def make_verbose_contracts(num_blocks: int = 24) -> str:
             f"### C-NET-{i:03d} · 규칙 {i}",
             f"- rule: 거점 {i} 대역은 `10.10.x.x/24`를 써야 하며",
             "  절대 다른 대역을 혼용하지 않는다.",
-            f"- scope: hybrid-5th/net-{i}",
+            f"- scope: jammy-5th/net-{i}",
             f"- violation: 10.10.x.x 외 대역 사용 ({i})",
             "- status: active",
             "- source: Confluence 14909445",
@@ -31,7 +31,7 @@ def make_verbose_contracts(num_blocks: int = 24) -> str:
     lines.extend([
         "### C-NET-999 · 구버전 대역",
         "- rule: 예전에 쓰던 아주 긴 설명이 들어간 구버전 대역 규칙이며 이제는 더 이상 사용하지 않는다.",
-        "- scope: hybrid-5th/legacy",
+        "- scope: jammy-5th/legacy",
         "- violation: 구버전 사용",
         "- status: superseded",
         "- by: C-NET-001",
@@ -84,7 +84,7 @@ def test_ai_fallback_used_when_deterministic_still_exceeds_limit(tmp_path, monke
         for i in range(1, 56):
             out.append(f"### C-NET-{i:03d} · 규칙 {i}")
             out.append(
-                f"- rule: `10.10.x.x/24` 필수 | scope: hybrid-5th/net-{i} | "
+                f"- rule: `10.10.x.x/24` 필수 | scope: jammy-5th/net-{i} | "
                 f"violation: 타 대역({i}) | status: active | source: Confluence 14909445"
             )
         out.append("### C-NET-999 · 구버전 대역")

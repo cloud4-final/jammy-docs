@@ -25,7 +25,7 @@ CHILDREN = [
 ]
 PARENT_BODY = (
     "<p>팀 공통 기준의 읽기용 사본이다. 원본은 "
-    '<a href="https://github.com/cloud4-final/hybrid-docs">GitHub cloud4-final/hybrid-docs</a>이고, '
+    '<a href="https://github.com/cloud4-final/jammy-docs">GitHub cloud4-final/jammy-docs</a>이고, '
     "평일 09·13·18시에 자동 갱신된다. 이 폴더의 페이지는 직접 수정하지 않는다.</p>"
 )
 

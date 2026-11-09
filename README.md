@@ -1,21 +1,21 @@
 <!-- confluence-page-id: 17334273 -->
 # 0. 공통 기준
 
-GitHub `cloud4-final/hybrid-docs`는 3거점 하이브리드 프로젝트의 팀 공통 기준이다. 사람과 AI 모두 이 repo의 main을 기준으로 작업한다.
+GitHub `cloud4-final/jammy-docs`는 3거점 하이브리드 프로젝트의 팀 공통 기준이다. 사람과 AI 모두 이 repo의 main을 기준으로 작업한다.
 
 | 파일 | 내용 |
 |---|---|
-| [contracts.md](https://github.com/cloud4-final/hybrid-docs/blob/main/contracts.md) | 파트 간 통일값: 대역, 주소, 포트, 이름, API, DB, 관측 label, AWS 태그, 최소 버전 (`C-`) |
-| [decisions.md](https://github.com/cloud4-final/hybrid-docs/blob/main/decisions.md) | 팀이 승인한 결정 (`D-`) |
-| [architecture.md](https://github.com/cloud4-final/hybrid-docs/blob/main/architecture.md) | 전체 아키텍처 경계: 토폴로지, 트래픽 흐름, 데이터·복제·백업, 배포·관측·AI (`A-`) |
-| [mvp-roles.md](https://github.com/cloud4-final/hybrid-docs/blob/main/mvp-roles.md) | MVP 필수·제외 범위와 파트별 담당 역할(Owner)·인계 경계 (`M-`) |
+| [contracts.md](https://github.com/cloud4-final/jammy-docs/blob/main/contracts.md) | 파트 간 통일값: 대역, 주소, 포트, 이름, API, DB, 관측 label, AWS 태그, 최소 버전 (`C-`) |
+| [decisions.md](https://github.com/cloud4-final/jammy-docs/blob/main/decisions.md) | 팀이 승인한 결정 (`D-`) |
+| [architecture.md](https://github.com/cloud4-final/jammy-docs/blob/main/architecture.md) | 전체 아키텍처 경계: 토폴로지, 트래픽 흐름, 데이터·복제·백업, 배포·관측·AI (`A-`) |
+| [mvp-roles.md](https://github.com/cloud4-final/jammy-docs/blob/main/mvp-roles.md) | MVP 필수·제외 범위와 파트별 담당 역할(Owner)·인계 경계 (`M-`) |
 
 ## 바꾸는 방법
 
 1. 팀에 먼저 제안한다(회의, 채팅, PR 코멘트).
-2. 이 repo에 PR을 올린다. 작은 변경은 GitHub 웹에서 연필 아이콘으로 고쳐도 된다. 자기 AI에게 "hybrid-docs에 반영 PR 올려줘"라고 시켜도 된다.
+2. 이 repo에 PR을 올린다. 작은 변경은 GitHub 웹에서 연필 아이콘으로 고쳐도 된다. 자기 AI에게 "jammy-docs에 반영 PR 올려줘"라고 시켜도 된다.
 3. 팀원 1명이 승인하면 merge된다. 승인이 곧 합의 기록이다.
-4. 코드 PR 본문에 이 PR 링크를 적는다. 링크한 hybrid-docs PR이 아직 merge되지 않았으면 `docs-link-check`가 경고로 알려준다.
+4. 코드 PR 본문에 이 PR 링크를 적는다. 링크한 jammy-docs PR이 아직 merge되지 않았으면 `docs-link-check`가 경고로 알려준다.
 5. merge된 변경은 `confluence-sync`가 Confluence `0. 공통 기준` 사본을 갱신하고, 각 블록의 `source`에 적힌 기존 Confluence 문서(아키텍처, MVP 등)도 AI가 읽어 관련 문단을 최신화한다.
 
 ## 작성 규칙
@@ -42,10 +42,10 @@ GitHub `cloud4-final/hybrid-docs`는 3거점 하이브리드 프로젝트의 팀
 - GitHub: 이 repo의 main
 - Confluence: `0. 공통 기준` (평일 09·13·18시 및 merge 시 자동 갱신, 직접 수정 금지)
 - AI: 평소에는 읽지 않는다. 다른 파트와 함께 쓰는 값을 다루거나 내용이 서로 맞지 않을 때만, 각 코드 repo의 `AGENTS.md`에 따라 아래 raw URL에서 관련 분류만 읽는다.
-  - `https://raw.githubusercontent.com/cloud4-final/hybrid-docs/main/contracts.md`
-  - `https://raw.githubusercontent.com/cloud4-final/hybrid-docs/main/decisions.md`
-  - `https://raw.githubusercontent.com/cloud4-final/hybrid-docs/main/architecture.md`
-  - `https://raw.githubusercontent.com/cloud4-final/hybrid-docs/main/mvp-roles.md`
+  - `https://raw.githubusercontent.com/cloud4-final/jammy-docs/main/contracts.md`
+  - `https://raw.githubusercontent.com/cloud4-final/jammy-docs/main/decisions.md`
+  - `https://raw.githubusercontent.com/cloud4-final/jammy-docs/main/architecture.md`
+  - `https://raw.githubusercontent.com/cloud4-final/jammy-docs/main/mvp-roles.md`
 - 리뷰 AI(CodeRabbit): 코드 PR마다 이 repo main의 4개 문서를 `code_guidelines`로 읽고 아래 `PR 리뷰 기준`으로 리뷰한다.
 
 ## PR 리뷰 기준

@@ -61,6 +61,9 @@
 ### C-PATH-007 · 망 분리 후 남은 경로
 - rule: 확인·결정할 것: (1) 다른 거점 app → A 원본 5432 개방 여부, (2) Pod(CNI) 출발지 주소·SNAT, (3) collector → 호스트 Alloy OTLP 4318, (4) `br-data` 모니터링·백업·fencing 경로, (5) 관리 인스턴스(Argo CD) → cp VM 6443 개방 시점, (6) 거점 → 관측 노트북(`tag:obs`) 포트 축소.
 - status: open | owner: jiwon28, HYE0NWEST | source: Confluence 14909445, 16973840
+### C-PATH-008 · Data VM 지표 수집
+- rule: 거점 호스트는 같은 거점 Data VM(`10.11.x.130`, `10.21.x.130`, `10.31.x.130`)의 9187(postgres_exporter, `jammy_reader` 읽기 전용)과 9100(node_exporter)을 수집하고, 거점 Prometheus Agent remote_write로 관측 노트북에 보낸다. 같은 거점 호스트가 아닌 출발지(app VM, cp VM, 다른 거점, 관측 노트북)의 Data VM 9187·9100 접근은 막아야 한다(MUST).
+- scope: jammy-observability `site/*`, Data VM 방화벽 | violation: 관측 노트북 Prometheus가 Data VM 9187을 직접 scrape | status: active | source: Confluence 19005441, 9187 설치·접근 제한 2026-11-06(HYE0NWEST), 9100 설치·호스트 조회 확인 2026-11-09(HYE0NWEST), 세 거점 호스트 조회 확인 2026-11-09 14:07 KST(YangJunMan)
 
 ## 이름과 태그
 ### C-NAME-001 · 거점 식별자

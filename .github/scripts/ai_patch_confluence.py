@@ -29,12 +29,13 @@ SELF_PAGE_IDS = {"17334273", "17367041", "17399809", "18350082", "18153491"}
 CONFLUENCE_REF = re.compile(r"Confluence\s+([\d,\s]+)")
 PAGE_ID_TOKEN = re.compile(r"\b(\d{5,12})\b")
 SYNC_SHA_RE = re.compile(r"sync-sha:([A-Za-z0-9_-]+)")
-# Confluence가 렌더링한 Info 매크로 중 "[jammy-docs AI 자동 최신화" (및 구 명칭)를 포함하는 블록과 레거시 주석 배너 모두 매칭
+# Confluence가 렌더링한 Info 매크로 중 "[jammy-docs AI 자동 최신화" (및 구 명칭, 에디터 parameter/local-id 포함) 블록과 레거시 주석 배너 모두 매칭
 BANNER_MACRO_RE = re.compile(
     r"(?:<!--\s*(?:jammy-docs|hybrid-docs)-ai-banner-start\s*-->\s*)?"
     r"(?:<!--\s*(?:jammy-docs|hybrid-docs)-sync-sha:\s*[A-Za-z0-9_-]+\s*-->\s*)?"
     r"<ac:structured-macro\b[^>]*ac:name=\"info\"[^>]*>"
-    r"<ac:rich-text-body><p><strong>\[(?:jammy-docs|hybrid-docs) AI 자동 최신화.*?</ac:structured-macro>"
+    r"(?:<ac:parameter\b[^>]*>.*?</ac:parameter>\s*)*"
+    r"<ac:rich-text-body>\s*<p\b[^>]*>\s*<strong>\[(?:jammy-docs|hybrid-docs) AI 자동 최신화.*?</ac:structured-macro>"
     r"(?:\s*<!--\s*(?:jammy-docs|hybrid-docs)-ai-banner-end\s*-->)?",
     re.S,
 )

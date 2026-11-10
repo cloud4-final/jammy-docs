@@ -8,7 +8,18 @@ reviews:
     drafts: false
   pre_merge_checks:
     docstrings:
-      mode: off
+      mode: "off"
+    title:
+      mode: "off"
+    description:
+      mode: "off"
+    issue_assessment:
+      mode: "off"
+    custom_checks:
+      - name: "연결 이슈 범위"
+        mode: warning
+        instructions: |
+          PR 본문의 Closes #N 이슈가 요구한 핵심 항목이 빠졌으면 경고한다. Part of #N이면 범위 비교를 하지 않는다.
   path_instructions:
     - path: "{contracts,decisions,architecture,mvp-roles}.md"
       instructions: |

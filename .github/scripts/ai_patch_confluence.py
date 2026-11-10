@@ -41,6 +41,7 @@ BANNER_MACRO_RE = re.compile(
 )
 MASKED_IP_RE = re.compile(r"\b\d{1,3}\.\d{1,3}\.x\.(?:x|\d{1,3})\b")
 SUMMARY_TAG_RE = re.compile(r"<summary>(.*?)</summary>", re.S)
+HALT_TAG_RE = re.compile(r"<halt>(.*?)</halt>", re.S)
 REPLACEMENTS_TAG_RE = re.compile(
     r"<replace>\s*<target>(.*?)</target>\s*<new>(.*?)</new>\s*</replace>",
     re.S,
@@ -128,6 +129,73 @@ def check_ip_mask_leak(before_html: str, after_html: str) -> list[str]:
     return sorted(after_masked - before_masked)
 
 
+def extract_halt_reason(raw_text: str) -> Optional[str]:
+    """LLM 응답에 <halt>사유</halt>가 포함되어 있으면 사유 문자열을 반환한다."""
+    match = HALT_TAG_RE.search(raw_text)
+    if match and match.group(1).strip():
+        return match.group(1).strip()
+    return None
+
+
+def check_mass_deletion(
+    before_text: str,
+    after_text: str,
+    max_drop_ratio: float = 0.20,
+    min_chars: int = 120,
+) -> Optional[str]:
+    """수정 후 본문이 비정상적으로 짧아지거나 길이 감소율이 임계치(기본 20%) 이상이면 에러 사유를 반환한다."""
+    b_len = len(before_text.strip())
+    a_len = len(after_text.strip())
+    if b_len >= min_chars and a_len < min_chars:
+        return f"본문 백지화/최소 길이 미만 감지 ({b_len}자 -> {a_len}자)"
+    if b_len >= min_chars:
+        drop_ratio = (b_len - a_len) / b_len
+        if drop_ratio >= max_drop_ratio:
+            pct = int(round(drop_ratio * 100))
+            return f"대량 삭제 감지: 본문 길이가 {b_len}자 -> {a_len}자로 {pct}% 감소 (한도 {int(max_drop_ratio * 100)}%)"
+    return None
+
+
+def send_slack_alert(
+    title: str,
+    reason: str,
+    page_id: str = "",
+    page_title: str = "",
+    env: Optional[dict[str, str]] = None,
+) -> bool:
+    """SLACK_WEBHOOK_URL이 설정되어 있으면 동기화 중단/경고 알림을 Slack으로 전송한다."""
+    e = env if env is not None else os.environ
+    webhook_url = e.get("SLACK_WEBHOOK_URL", "").strip()
+    if not webhook_url:
+        print(f"[slack-skip] SLACK_WEBHOOK_URL 미설정 — 알림 생략: {title} | {reason}")
+        return False
+
+    lines = [f":rotating_light: *[{title}]*", f"• *사유*: {reason}"]
+    if page_id:
+        page_url = f"https://{DOMAIN}/wiki/spaces/MFS/pages/{page_id}"
+        label = f"{page_title} ({page_id})" if page_title else page_id
+        lines.append(f"• *대상 Confluence*: <{page_url}|{label}>")
+    run_id = e.get("GITHUB_RUN_ID", "").strip()
+    repo = e.get("GITHUB_REPOSITORY", "cloud4-final/jammy-docs").strip()
+    server = e.get("GITHUB_SERVER_URL", "https://github.com").strip()
+    if run_id:
+        lines.append(f"• *Actions 로그*: <{server}/{repo}/actions/runs/{run_id}|Run #{run_id}>")
+
+    payload = {"text": "\n".join(lines)}
+    req = urllib.request.Request(
+        webhook_url,
+        method="POST",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return 200 <= resp.status < 300
+    except Exception as err:
+        print(f"[warn] Slack 알림 전송 실패: {err}")
+        return False
+
+
 def parse_llm_response(raw_text: str) -> tuple[str, list[tuple[str, str]]]:
     """LLM 응답에서 <summary>와 <replace><target>...<new>...</replace> 목록을 추출한다."""
     summary_match = SUMMARY_TAG_RE.search(raw_text)
@@ -200,7 +268,8 @@ GitHub `cloud4-final/jammy-docs`의 최신 규칙·결정 블록을 기준으로
 ## 절대 지켜야 할 안전 규칙
 1. **Confluence 내부의 실제 IP 보존**: jammy-docs는 Public 저장소라서 IP가 `10.10.x.110`처럼 `x`로 가려져 있다. Confluence 본문에 이미 실제 숫자 IP(예: `10.10.1.110`)가 적혀 있다면 절대 `x`로 덮어쓰지 마라.
 2. **기존 문서 구조 보존**: 전체 문서를 다시 출력하지 말고, 고쳐야 할 정확한 부분 문자열(`<target>`)과 바꿀 문자열(`<new>`)만 출력하라. `<target>`은 현재 Confluence XHTML에 있는 문자열과 글자 그대로 일치해야 한다.
-3. **응답 형식**: 반드시 아래 태그 형식으로만 응답하라. 고칠 문단이 없으면 `<summary>`만 출력하라.
+3. **사람 확인 게이트(`<halt>`)**: 만약 Confluence 본문이 대규모로 개편·삭제되었거나, `jammy-docs` 블록과 Confluence 본문 사이에 어느 쪽이 더 최신 합의인지 알 수 없는 정면충돌(모순)이 있어 사람의 확인이 필요하다면, 절대 `<replace>`를 출력하지 말고 `<halt>사람 확인이 필요한 구체적 사유</halt>`만 출력하라.
+4. **응답 형식**: 반드시 아래 태그 형식으로만 응답하라. 고칠 문단이 없으면 `<summary>`만 출력하라.
 
 <summary>어떤 문단/상태를 최신화했는지(또는 이미 최신 기준과 일치하는지) 한국어 한 줄 요약 (근거 ID 포함)</summary>
 <replace>
@@ -213,8 +282,8 @@ GitHub `cloud4-final/jammy-docs`의 최신 규칙·결정 블록을 기준으로
 """
 
 
-def call_llm(provider: str, api_key: str, prompt: str) -> tuple[str, list[tuple[str, str]]]:
-    """선택된 프로바이더의 REST API를 호출해 (summary, replacements)를 반환한다."""
+def call_llm_raw(provider: str, api_key: str, prompt: str) -> str:
+    """선택된 프로바이더의 REST API를 호출해 원문 응답 문자열을 반환한다."""
     if provider == "anthropic":
         model = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-5-5")
         payload = {
@@ -234,10 +303,10 @@ def call_llm(provider: str, api_key: str, prompt: str) -> tuple[str, list[tuple[
         )
         with urllib.request.urlopen(req, timeout=90) as resp:
             data = json.loads(resp.read())
-        raw_text = "".join(
+        return "".join(
             block.get("text", "") for block in data.get("content", []) if isinstance(block, dict) and "text" in block
         )
-    elif provider == "openai":
+    if provider == "openai":
         model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
         payload = {
             "model": model,
@@ -254,8 +323,8 @@ def call_llm(provider: str, api_key: str, prompt: str) -> tuple[str, list[tuple[
         )
         with urllib.request.urlopen(req, timeout=90) as resp:
             data = json.loads(resp.read())
-        raw_text = data["choices"][0]["message"]["content"]
-    elif provider == "gemini":
+        return data["choices"][0]["message"]["content"]
+    if provider == "gemini":
         model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         payload = {
@@ -269,11 +338,13 @@ def call_llm(provider: str, api_key: str, prompt: str) -> tuple[str, list[tuple[
         )
         with urllib.request.urlopen(req, timeout=90) as resp:
             data = json.loads(resp.read())
-        raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-    else:
-        raise ValueError(f"지원하지 않는 LLM provider: {provider}")
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    raise ValueError(f"지원하지 않는 LLM provider: {provider}")
 
-    return parse_llm_response(raw_text)
+
+def call_llm(provider: str, api_key: str, prompt: str) -> tuple[str, list[tuple[str, str]]]:
+    """선택된 프로바이더의 REST API를 호출해 (summary, replacements)를 반환한다."""
+    return parse_llm_response(call_llm_raw(provider, api_key, prompt))
 
 
 class ConfluenceClient:
@@ -300,8 +371,11 @@ class ConfluenceClient:
         except urllib.error.HTTPError as err:
             raise RuntimeError(f"{method} {path}: {err.code} {err.read()[:200]!r}") from err
 
-    def get_page(self, page_id: str) -> dict:
-        return self._req("GET", f"/api/v2/pages/{page_id}?body-format=storage")
+    def get_page(self, page_id: str, version: Optional[int] = None) -> dict:
+        query = "?body-format=storage"
+        if version is not None:
+            query += f"&version={version}"
+        return self._req("GET", f"/api/v2/pages/{page_id}{query}")
 
     def update_page(self, page_id: str, title: str, storage_value: str, next_version: int, message: str) -> None:
         self._req(
@@ -386,12 +460,35 @@ def main(argv: list[str]) -> int:
         clean_body = strip_existing_banners(current_html)
 
         try:
-            summary, replacements = call_llm(provider, api_key, build_prompt(title, clean_body, blocks))
+            raw_resp = call_llm_raw(provider, api_key, build_prompt(title, clean_body, blocks))
         except Exception as err:
             print(f"[warn] LLM 호출 실패({pid} {title}): {err}")
             continue
 
+        halt_reason = extract_halt_reason(raw_resp)
+        if halt_reason:
+            print(f"[halt] {pid} ({title}) AI 판단으로 동기화 보류: {halt_reason}")
+            send_slack_alert(
+                "AI 정방향 동기화 보류 (사람 확인 필요)",
+                halt_reason,
+                page_id=pid,
+                page_title=title,
+            )
+            return 1
+
+        summary, replacements = parse_llm_response(raw_resp)
         candidate_body, applied_patches = apply_replacements(clean_body, replacements)
+
+        deletion_err = check_mass_deletion(clean_body, candidate_body)
+        if deletion_err:
+            print(f"[guard] {pid} ({title}) 대량 삭제 감지 -> 동기화 중단: {deletion_err}")
+            send_slack_alert(
+                "Confluence 정방향 동기화 대량 삭제 가드 발동",
+                deletion_err,
+                page_id=pid,
+                page_title=title,
+            )
+            return 1
 
         leaked_masks = check_ip_mask_leak(clean_body, candidate_body)
         if leaked_masks:

@@ -50,3 +50,34 @@ def test_parse_and_apply_reverse_patches_with_guard(tmp_path):
     applied = pfc.apply_and_validate_patches(tmp_path, patches)
     assert applied == 1
     assert "10.10.x.130" in cfile.read_text(encoding="utf-8")
+
+
+def test_extract_halt_reason_and_mass_deletion_guard():
+    halt_raw = "<halt>Confluence 본문의 네트워크 대역과 contracts.md C-NET-001이 정면충돌하여 사람 확인 필요</halt>"
+    assert pfc.ap.extract_halt_reason(halt_raw) is not None
+    assert "정면충돌" in pfc.ap.extract_halt_reason(halt_raw)
+    assert pfc.ap.extract_halt_reason("<summary>정상</summary>") is None
+
+    before = "A" * 500
+    after_half = "A" * 200
+    err = pfc.ap.check_mass_deletion(before, after_half)
+    assert err is not None
+    assert "대량 삭제 감지" in err
+    assert pfc.ap.check_mass_deletion(before, "A" * 450) is None
+
+
+def test_git_block_deletion_guard():
+    before = (
+        "<!-- confluence-page-id: 17367041 -->\n"
+        "### C-NET-001 · 대역\n"
+        "- rule: r1 | scope: s1 | violation: v1 | status: active | source: src1\n"
+        "### C-NET-002 · 포트\n"
+        "- rule: r2 | scope: s2 | violation: v2 | status: active | source: src2\n"
+    )
+    after_deleted_block = (
+        "<!-- confluence-page-id: 17367041 -->\n"
+        "### C-NET-001 · 대역\n"
+        "- rule: r1 | scope: s1 | violation: v1 | status: active | source: src1\n"
+    )
+    errors = pfc.check_docs.compare_text_deletion("contracts.md", before, after_deleted_block)
+    assert any("C-NET-002" in e and "블록 무단 삭제 감지" in e for e in errors)

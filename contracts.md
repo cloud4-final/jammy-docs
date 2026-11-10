@@ -117,6 +117,9 @@
 ### C-OBS-003 · 운영 데이터 필드
 - rule: 분석·모델용 운영 로그와 지표는 `site`, `service`, `timestamp`, `run_id`, `request_id`, 단위를 식별할 수 있어야 한다(SHOULD). 실제 schema를 맞출 담당과 시점을 정해야 한다.
 - status: open | owner: YangJunMan, daji0713 | source: Confluence 12779522
+### C-OBS-004 · 경보 전달
+- rule: 경보는 관측 노트북 Alertmanager에서 Slack(teamjammyjammy) `#jammy-alerts` 한 채널로만 보낸다. `severity: critical`은 `@here`·1시간 반복, `warning`은 멘션 없이 4시간 반복, 해결 시 resolved를 보낸다. webhook URL은 `/opt/jammy-obs/secrets/slack_webhook_url` 파일로만 읽고 저장소·문서에 쓰면 안 된다(MUST NOT). 새 경보 규칙은 `severity`(`critical`/`warning`)와 `summary`·`description`을 가져야 한다(MUST).
+- scope: jammy-observability `hub/alertmanager/*`, `alerts/rules.yml` | violation: `alertmanager.yml`에 `api_url: https://hooks.slack.com/...` 직접 기입 | status: active | source: cloud4-final/jammy-observability#10, 시험 알림 4건(발생·해결) 도착 확인 2026-11-09 15:01~15:08 KST(YangJunMan)
 
 ## AWS
 ### C-AWS-001 · 필수 태그

@@ -60,10 +60,13 @@
 - scope: 모든 repo | violation: 이 파일에 없는 포트 9000을 서비스 노출에 사용 | status: active | source: Confluence 13467672
 ### C-PATH-007 · 망 분리 후 남은 경로
 - rule: 확인·결정할 것: (1) 다른 거점 app → A 원본 5432 개방 여부, (2) Pod(CNI) 출발지 주소·SNAT, (3) collector → 호스트 Alloy OTLP 4318, (4) `br-data` 모니터링·백업·fencing 경로, (5) 관리 인스턴스(Argo CD) → cp VM 6443 개방 시점, (6) 거점 → 관측 노트북(`tag:obs`) 포트 축소.
-- status: open | owner: jiwon28, HYE0NWEST | source: Confluence 14909445, 16973840
+- status: superseded | by: C-PATH-009 | owner: jiwon28, HYE0NWEST | source: Confluence 14909445, 16973840
 ### C-PATH-008 · Data VM 지표 수집
 - rule: 거점 호스트는 같은 거점 Data VM(`10.11.x.130`, `10.21.x.130`, `10.31.x.130`)의 9187(postgres_exporter, `jammy_reader` 읽기 전용)과 9100(node_exporter)을 수집하고, 거점 Prometheus Agent remote_write로 관측 노트북에 보낸다. 같은 거점 호스트가 아닌 출발지(app VM, cp VM, 다른 거점, 관측 노트북)의 Data VM 9187·9100 접근은 막아야 한다(MUST).
 - scope: jammy-observability `site/*`, Data VM 방화벽 | violation: 관측 노트북 Prometheus가 Data VM 9187을 직접 scrape | status: active | source: Confluence 19005441, 9187 설치·접근 제한 2026-11-06(HYE0NWEST), 9100 설치·호스트 조회 확인 2026-11-09(HYE0NWEST), 세 거점 호스트 조회 확인 2026-11-09 14:07 KST(YangJunMan)
+### C-PATH-009 · 망 분리 후 확정 경로와 남은 항목
+- rule: 다른 거점 app → A 원본 5432 허용(ACL 7·nft), 거점 호스트 → 같은 거점 Data VM 9187·9100(C-PATH-008), 거점 → 관측 노트북(`tag:obs`) 9090·3100·4317·4318 허용은 확정이다. 남은 확인 항목: (1) Pod(CNI) 출발지 SNAT, (2) collector → 호스트 Alloy OTLP 4318, (3) 관리 인스턴스(Argo CD) → cp VM 6443 개방 시점.
+- status: open | owner: jiwon28, HYE0NWEST | source: Confluence 13533222, 13107293, 10846229
 
 ## 이름과 태그
 ### C-NAME-001 · 거점 식별자
@@ -119,7 +122,7 @@
 - status: open | owner: YangJunMan, daji0713 | source: Confluence 12779522
 ### C-OBS-004 · 경보 전달
 - rule: 경보는 관측 노트북 Alertmanager에서 Slack(teamjammyjammy) `#jammy-alerts` 한 채널로만 보낸다. `severity: critical`은 `@here`·1시간 반복, `warning`은 멘션 없이 4시간 반복, 해결 시 resolved를 보낸다. webhook URL은 `/opt/jammy-obs/secrets/slack_webhook_url` 파일로만 읽고 저장소·문서에 쓰면 안 된다(MUST NOT). 새 경보 규칙은 `severity`(`critical`/`warning`)와 `summary`·`description`을 가져야 한다(MUST).
-- scope: jammy-observability `hub/alertmanager/*`, `alerts/rules.yml` | violation: `alertmanager.yml`에 `api_url: https://hooks.slack.com/...` 직접 기입 | status: active | source: cloud4-final/jammy-observability#10, 시험 알림 4건(발생·해결) 도착 확인 2026-11-09 15:01~15:08 KST(YangJunMan)
+- scope: jammy-observability `hub/alertmanager/*`, `alerts/rules.yml` | violation: `alertmanager.yml`에 `api_url: https://hooks.slack.com/...` 직접 기입 | status: active | source: Confluence 3342364, 4194323, 5374003, 10715170, 8060964, cloud4-final/jammy-observability#10
 
 ## AWS
 ### C-AWS-001 · 필수 태그
@@ -130,7 +133,7 @@
 - scope: jammy-5th `infra/aws/*` | violation: `Component = "web"` | status: superseded | by: C-AWS-003 | source: Confluence 13139969, jammy-5th `infra/aws/oidc.tf`
 ### C-AWS-003 · Component 태그 (files·backup 추가)
 - rule: `Component` 값은 `edge`(입구), `network`(VPC·서브넷·IGW·라우팅), `ci`(GitHub Actions OIDC 역할), `files`(파일 S3 버킷), `backup`(백업 S3 버킷·pgBackRest IAM 사용자)만 쓴다(MUST). 제안 단계 값(`mgmt`, `burst`, `dns`)이나 새 값은 이 파일에 먼저 추가해야 한다(MUST).
-- scope: jammy-5th `infra/aws/*` | violation: `Component = "storage"` | status: active | source: jammy-5th `infra/aws/s3.tf`·`infra/aws/backup_iam.tf`(PR #16·#25)
+- scope: jammy-5th `infra/aws/*` | violation: `Component = "storage"` | status: active | source: Confluence 13139969, 10813445, jammy-5th `infra/aws/s3.tf`·`infra/aws/backup_iam.tf`(PR #16·#25)
 
 ## AI 연동
 ### C-AI-001 · 모델 API 경계

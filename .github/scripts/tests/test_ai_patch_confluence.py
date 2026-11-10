@@ -33,6 +33,18 @@ def test_needs_sync_and_banner_idempotency():
     assert updated2.count("[jammy-docs AI 자동 최신화") == 1
     assert ap.needs_sync(updated2, "newsha1234567890") is False
 
+    # Confluence 웹 에디터가 추가한 containerLevel parameter 및 local-id 속성이 있는 기존 배너도 중복 없이 제거
+    editor_mutated = (
+        '<ac:structured-macro ac:name="info" ac:schema-version="1" ac:local-id="ff58" ac:macro-id="0047">'
+        '<ac:parameter ac:name="containerLevel">panel_c1</ac:parameter>'
+        '<ac:rich-text-body><p local-id="44ef"><strong>[hybrid-docs AI 자동 최신화 · 2026-11-06]</strong> '
+        '(<code>sync-sha:oldsha000</code>)</p></ac:rich-text-body></ac:structured-macro>'
+        "<p>본문</p>"
+    )
+    updated3 = ap.apply_banner(editor_mutated, banner2)
+    assert updated3.count("AI 자동 최신화") == 1
+    assert "oldsha000" not in updated3
+
 
 def test_check_ip_mask_leak():
     before = "<p>DB 주소는 10.11.1.130 이다.</p>"

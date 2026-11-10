@@ -108,3 +108,12 @@
 - violation: AI 모델 응답을 받아 `kubectl scale`이나 Terraform/Argo CD 설정을 무인 변경
 - status: active
 - source: Confluence 4194323, 4685838, 12910594
+
+
+### A-OPS-004 · CPU 데이터 처리·추론과 GPU 학습·평가 분리
+- rule: 운영 로그·지표를 CPU에서 정제·품질 검사·버전 데이터셋으로 만들고, GPU에서 예측 모델을 학습·시간순 평가한 뒤 기준선 비교·사람 승인 후 CPU 추론으로 배포한다(MUST). 데이터·설정·모델·평가 버전을 연결하고 CPU artifact 적재·출력 호환·지연·메모리와 롤백을 검증한다. GPU 추론은 CPU 목표 지연·처리량 미달 시 추가 검토한다. M-MVP-006을 따르며 A-OPS-003의 업무 트랜잭션 분리·자동 운영 변경 금지를 유지한다.
+- scope: jammy-5th(데이터·AI 파이프라인, 모델 배포), jammy-observability(운영 데이터 인계)
+- violation: GPU 학습·평가를 MVP에서 제외하거나 검증 없이 GPU 학습 artifact를 운영 CPU API로 교체
+- status: active
+- source: Confluence 4194323, 4685838, 13565982, 3538951
+

@@ -36,7 +36,8 @@
 - rule: M10(거점·서비스·시간·요청 ID 기반 운영 로그 검색·오류 집계), M11(로그·지표 정제·품질 검사·재처리·버전 데이터셋 자동화), M12(작은 CPU 모델 1개 시간순 평가·기준선 비교·배포/롤백), M13(조회 API 지연 위험 및 실측 용량 기반 Pod 수 후보 추천·비교)을 범위로 한다(MUST).
 - owner: daji0713, YangJunMan
 - scope: jammy-5th, jammy-observability, jammy-collector
-- status: active
+- status: superseded
+- by: M-MVP-006
 - source: Confluence 3538951, 13565982, 12779522, 12910594
 
 ### M-MVP-005 · MVP 명시적 제외 사항 (Out of Scope)
@@ -80,7 +81,8 @@
 - rule: 3거점 k3s 클러스터 운영(버전·라벨·taint·CNI·NetworkPolicy·자원 한도·HPA·배포 매니페스트), 구축된 DB의 운영 인수, 운영 로그·지표 정제·품질·재처리·버전 데이터셋 파이프라인, 지연 예측 모델 학습·평가·추론 API·Pod 수 추천 검증은 `daji0713`(서브: `YangJunMan`)이 담당한다.
 - owner: daji0713
 - scope: jammy-5th(`k8s/*`, `apps/*`, 데이터·AI 파이프라인)
-- status: active
+- status: superseded
+- by: M-ROLE-007
 - source: Confluence 5374003, 13565982
 
 ### M-ROLE-006 · 파트 간 접점 인계 규칙
@@ -93,3 +95,19 @@
 - scope: 모든 repo
 - status: active
 - source: Confluence 5374003
+
+
+### M-MVP-006 · 운영 데이터·GPU 학습·CPU 추론·자원 추천 (M10~M13)
+- rule: M10(운영 로그 검색·오류 집계), M11(로그·지표 정제·품질·재처리·버전 데이터셋), M12(예측 모델 1개의 GPU 학습·시간순 평가·기준선 비교와 CPU 추론 배포/롤백), M13(조회 API 지연 위험·실측 용량 기반 Pod 후보 추천·비교)을 MVP 범위로 한다(MUST). GPU 학습·평가는 필수이며 CPU는 데이터 처리·API·추론을 맡는다. GPU 학습 시간·VRAM, CPU 추론 지연·RAM·출력 호환성을 검증하고 GPU 추론은 목표 지연·처리량 미달 시 추가 검토한다. 구현 범위이며 완료 주장은 아니다.
+- owner: daji0713, YangJunMan
+- scope: jammy-5th, jammy-observability, jammy-collector
+- status: active
+- source: Confluence 3538951, 13565982, 4685838, 12910594
+
+### M-ROLE-007 · Kubernetes·데이터·GPU 학습·CPU 추론 담당
+- rule: 3거점 k3s 정책·CNI·NetworkPolicy·자원/HPA·배포 매니페스트, 구축된 DB의 운영 인수, 운영 데이터 정제·품질·재처리·버전 데이터셋, GPU 예측 모델 학습·평가 및 CPU 추론 API·Pod 추천 검증은 `daji0713`(서브: `YangJunMan`)이 담당한다. M-ROLE-003의 DB 초기 구축과 M-ROLE-004의 공통 CI/CD·관측 책임, M-ROLE-006의 인계 경계를 유지한다(MUST).
+- owner: daji0713
+- scope: jammy-5th(`k8s/*`, `apps/*`, 데이터·AI 파이프라인)
+- status: active
+- source: Confluence 5374003, 13565982, 4685838
+

@@ -10,6 +10,30 @@
 - `status: active`만 적용한다. `status: superseded`는 적용하지 않고 `by`가 가리키는 결정을 따른다.
 - 같은 날짜 안에서는 번호가 클수록 나중 결정이다.
 
+### D-20261109-02 · AWS DB 사본은 MVP 범위 아님
+- decision: AWS에 DB 사본(복제본)을 상시로 두지 않는다. MVP 이후 여유가 있을 때만 시험용으로 백업 S3에서 pgBackRest로 복원해 띄우고, 시험이 끝나면 삭제한다.
+- implies: MVP 기간에는 AWS → 거점 DB 복제 경로(5432)와 ACL을 만들지 않는다. D-20261103-02의 "2순위 AWS 거점(추후)"은 이 시험용 거점을 뜻한다. 시험 전에는 C-DB-003(복구 검증 완료 표현 금지)을 그대로 지킨다. 시험을 하게 되면 복제 경로·ACL을 네트워크 담당(jiwon28)과 먼저 공유한다.
+- why: 상시 사본은 EC2 비용과 복제 경로·ACL·fencing을 늘려 MVP 일정과 예산에 부담이 되고, 시험용 복원만으로도 3거점 전체 중단 시험과 백업 복원 검증을 할 수 있어서
+- scope: AWS, 네트워크, DB
+- status: active
+- source: Confluence 19792000, 4194323
+
+### D-20261109-01 · Data VM 백업 인증은 범위를 좁힌 IAM 사용자 키
+- decision: 거점 Data VM의 pgBackRest는 IAM 사용자 `jammy-pgbackrest`의 액세스 키(`repo1-s3-key-type=shared`)로 백업 S3 버킷에 접근한다. 권한은 `pgbackrest/` 경로로만 제한한다. 백업 버킷 수명 주기는 현재 버전을 지우지 않고 이전 버전만 30일 뒤 정리한다.
+- implies: pgBackRest는 `repo1-path=/pgbackrest`를 써야 한다. 액세스 키는 Terraform(`aws_iam_access_key`)으로 만들지 않는다(값이 tfstate에 남음). 키를 코드, tfstate, 문서, 메신저에 남기면 안 된다. 백업 보관 기간은 pgBackRest `expire`가 정하고, S3 수명 주기에 현재 버전 만료 규칙을 넣으면 안 된다(백업·WAL 세트가 깨짐). 이 키는 GitHub Actions용이 아니므로 A-OPS-001(GitHub Actions는 OIDC만)과 충돌하지 않는다.
+- why: Data VM은 EC2가 아니라 인스턴스 역할을 쓸 수 없고, IAM Roles Anywhere는 사설 CA 운영과 별도 도구가 필요해 MVP 범위에 과해서
+- scope: AWS, 온프레미스, DB
+- status: active
+- source: Confluence 20119725
+
+### D-20261106-01 · Terraform CI는 lint와 plan 분리, plan은 PR 전용 OIDC 읽기 역할
+- decision: lint(fmt·validate)는 `terraform.yml`, plan은 `terraform-plan.yml`로 나눈다. plan은 `pull_request`에서만 OIDC로 읽기 전용 역할 `jammy-gha-plan`을 빌려 실행하고, apply는 사람이 로컬에서 한다.
+- implies: plan 역할에 인프라 변경·apply 권한과 state(`aws/terraform.tfstate`) 쓰기 권한을 주지 않는다. 예외로 `use_lockfile` 잠금 파일(`aws/terraform.tfstate.tflock`)의 `s3:PutObject`·`s3:DeleteObject`만 허용한다(없으면 plan이 잠금 단계에서 실패). 신뢰 정책 `sub`는 immutable subject 형식(`repo:cloud4-final@<조직ID>/jammy-5th@<레포ID>:pull_request`)을 쓴다. 레포 이름을 바꾸면 신뢰 정책도 함께 바꿔야 한다(sub에 이름이 남음). 포크 PR은 건너뛰고 `pull_request_target`은 쓰지 않는다. 다른 OIDC 역할도 같은 sub 형식을 따른다.
+- why: plan 역할을 PR 전용으로 좁게 유지하면서, main push에서도 도는 lint가 AWS 없이 계속 동작하게 하기 위해서
+- scope: AWS, CI/CD
+- status: active
+- source: Confluence 19988482, 19792019
+
 ### D-20261105-01 · 팀 기준 문서는 jammy-docs
 - decision: 파트 간 통일값은 `contracts.md`, 팀 결정은 이 파일에 둔다. GitHub `cloud4-final/jammy-docs` main이 기준이고, Confluence `0. 공통 기준`은 읽기용 사본이다.
 - implies: 통일값이나 방향을 바꾸는 코드 PR은 jammy-docs PR 링크를 본문에 적어야 한다. 링크한 PR이 merge되기 전에는 `docs-link-check`가 실패한다.

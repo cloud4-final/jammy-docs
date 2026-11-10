@@ -1,6 +1,7 @@
-"""jammy-docs 문서 검사: 가리지 않은 IPv4, Confluence page ID, 최대 줄 수, 블록 형식."""
+"""jammy-docs 문서 검사: 가리지 않은 IPv4, Confluence page ID, 최대 줄 수, 블록 형식, 대량 삭제 가드."""
 import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
@@ -84,16 +85,90 @@ def check_blocks(paths: list[Path]) -> list[str]:
     return errors
 
 
+def compare_text_deletion(
+    name: str,
+    before_text: str,
+    after_text: str,
+    max_drop_ratio: float = 0.20,
+    check_block_ids: bool = True,
+) -> list[str]:
+    """이전 본문 대비 블록 ID 삭제 여부 및 본문 길이 급감(기본 20% 이상)을 검사한다."""
+    errors: list[str] = []
+    if not before_text.strip():
+        return errors
+    before_len = len(before_text.strip())
+    after_len = len(after_text.strip())
+    if before_len >= 100:
+        drop_ratio = (before_len - after_len) / before_len
+        if drop_ratio >= max_drop_ratio:
+            pct = int(round(drop_ratio * 100))
+            errors.append(
+                f"{name}: 대량 삭제 가드 발동 — 본문 길이가 {before_len}자 -> {after_len}자로 {pct}% 감소 (허용 한도 {int(max_drop_ratio * 100)}%)"
+            )
+    if check_block_ids:
+        before_ids = {bid for bid, _ in parse_blocks(before_text)}
+        after_ids = {bid for bid, _ in parse_blocks(after_text)}
+        removed_ids = sorted(before_ids - after_ids)
+        if removed_ids:
+            errors.append(
+                f"{name}: 블록 무단 삭제 감지({', '.join(removed_ids)}) — 삭제 대신 status: superseded를 사용하라"
+            )
+    return errors
+
+
+def check_git_deletion_guard(
+    paths: list[Path],
+    base_ref: str = "HEAD~1",
+    max_drop_ratio: float = 0.20,
+) -> list[str]:
+    """직전 Git 커밋(base_ref) 대비 대량 삭제 또는 블록 삭제 여부를 검사한다."""
+    errors: list[str] = []
+    for path in paths:
+        if not path.exists():
+            continue
+        try:
+            repo_root = subprocess.check_output(
+                ["git", "-C", str(path.parent), "rev-parse", "--show-toplevel"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).strip()
+            rel_path = path.resolve().relative_to(Path(repo_root).resolve()).as_posix()
+            before_text = subprocess.check_output(
+                ["git", "-C", repo_root, "show", f"{base_ref}:{rel_path}"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            continue
+        after_text = path.read_text(encoding="utf-8")
+        has_blocks = path.name != "README.md"
+        errors.extend(
+            compare_text_deletion(
+                path.name,
+                before_text,
+                after_text,
+                max_drop_ratio=max_drop_ratio,
+                check_block_ids=has_blocks,
+            )
+        )
+    return errors
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("files", nargs="+")
     parser.add_argument("--require-page-id", action="store_true")
     parser.add_argument("--blocks", action="store_true", help="규칙·결정 블록 형식 검사")
     parser.add_argument("--max-lines", type=int, default=None, help="파일당 최대 허용 줄 수 (예: 150)")
+    parser.add_argument("--guard-git-diff", action="store_true", help="직전 커밋 대비 대량 삭제 및 블록 삭제 차단")
+    parser.add_argument("--base-ref", default="HEAD~1", help="대량 삭제 비교 기준 Git ref (기본: HEAD~1)")
     args = parser.parse_args(argv)
-    errors = [e for f in args.files for e in check_doc(Path(f), args.require_page_id, args.max_lines)]
+    file_paths = [Path(f) for f in args.files]
+    errors = [e for p in file_paths for e in check_doc(p, args.require_page_id, args.max_lines)]
     if args.blocks:
-        errors += check_blocks([Path(f) for f in args.files])
+        errors += check_blocks(file_paths)
+    if args.guard_git_diff:
+        errors += check_git_deletion_guard(file_paths, base_ref=args.base_ref)
     for error in errors:
         print(error)
     return 1 if errors else 0

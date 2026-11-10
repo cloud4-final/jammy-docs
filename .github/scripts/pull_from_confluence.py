@@ -111,6 +111,7 @@ def build_reverse_prompt(
 2. **이력 보존(`superseded`)**: 기존 `status: active` 블록의 규칙이 바뀌었으면 삭제하지 말고 `status: superseded | by: <새 ID>`로 바꾼 뒤 새 블록을 추가하라.
 3. **160줄 제한 및 블록 형식 준수**: 각 파일은 160줄 이하여야 하며 기존 블록 필드 형식을 정확히 유지해야 한다.
 4. **불필요한 변경 금지**: 단순 문장 표현 차이나 파트 내부 세부 일지여서 공통 기준(`contracts.md`, `decisions.md`, `architecture.md`, `mvp-roles.md`)을 바꿀 필요가 없으면 `<patch>`를 하나도 출력하지 마라.
+5. **사람 확인 게이트(`<halt>`)**: 만약 Confluence 본문 내용이 대규모로 바뀌었거나 삭제되었거나, 기존 `jammy-docs`의 active 계약·결정과 정면충돌하는데 어느 쪽이 최신 합의인지 판단할 수 없거나, 사람의 확인·의사결정이 반드시 필요한 변경이라면 절대 `<patch>`를 출력하지 말고 `<halt>사람 확인이 필요한 구체적 사유</halt>`만 출력하라.
 
 ## 출력 형식
 <summary>반영 요약 한 줄 (변경 없으면 '공통 기준 변경 없음')</summary>
@@ -143,7 +144,7 @@ def apply_and_validate_patches(
     root: Path,
     patches: list[tuple[str, str, str]],
 ) -> int:
-    """패치를 적용하고 check_docs 검증을 통과하는지 확인한다. 실패 시 원복한다."""
+    """패치를 적용하고 check_docs 및 대량 삭제 검증을 통과하는지 확인한다. 실패 시 원복한다."""
     applied = 0
     backups: dict[str, str] = {}
     touched: set[str] = set()
@@ -166,11 +167,15 @@ def apply_and_validate_patches(
     block_errors = check_docs.check_blocks(existing_paths)
     for fname in touched:
         fpath = root / fname
-        errors = check_docs.check_doc(fpath, require_page_id=True, max_lines=160) + block_errors
+        after_text = fpath.read_text(encoding="utf-8")
+        del_errors = check_docs.compare_text_deletion(fname, backups[fname], after_text)
+        errors = check_docs.check_doc(fpath, require_page_id=True, max_lines=160) + block_errors + del_errors
         if errors:
             print(f"[guard] {fname} 검증 실패({errors}) -> 변경 원복")
             fpath.write_text(backups[fname], encoding="utf-8")
             applied = 0
+            if del_errors:
+                ap.send_slack_alert("jammy-docs 역방향 패치 대량/블록 삭제 차단", "; ".join(del_errors))
 
     return applied
 
@@ -206,6 +211,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         ver_info = page.get("version", {})
         when_str = ver_info.get("when", "")
         ver_msg = ver_info.get("message", "")
+        version_num = int(ver_info.get("number", 1) or 1)
         page_epoch = parse_iso_timestamp(when_str)
 
         if is_bot_version_message(ver_msg):
@@ -215,7 +221,27 @@ def main(argv: Optional[list[str]] = None) -> int:
 
         title = page.get("title", pid)
         html_body = page.get("body", {}).get("storage", {}).get("value", "")
-        changed_pages.append((pid, title, html_to_plain_text(html_body)))
+        current_plain = html_to_plain_text(html_body)
+
+        if version_num > 1:
+            try:
+                prev_page = client.get_page(pid, version=version_num - 1)
+                prev_html = prev_page.get("body", {}).get("storage", {}).get("value", "")
+                prev_plain = html_to_plain_text(prev_html)
+                del_err = ap.check_mass_deletion(prev_plain, current_plain)
+                if del_err:
+                    print(f"[guard] Confluence {pid} ({title}) 대량 삭제 감지 -> 동기화 즉시 중단: {del_err}")
+                    ap.send_slack_alert(
+                        "Confluence 본문 대량 삭제 가드 발동 (역방향 동기화 중단)",
+                        del_err,
+                        page_id=pid,
+                        page_title=title,
+                    )
+                    return 1
+            except Exception as err:
+                print(f"[warn] 이전 버전({version_num - 1}) 비교 생략({pid}): {err}")
+
+        changed_pages.append((pid, title, current_plain))
 
     if not changed_pages:
         print("[up-to-date] 마지막 커밋 이후 사람이 수정한 Confluence 페이지가 없습니다.")
@@ -241,11 +267,22 @@ def main(argv: Optional[list[str]] = None) -> int:
         prompt = build_reverse_prompt(pid, title, plain_text, docs_content)
         try:
             raw = ap.call_llm_raw(provider, api_key, prompt)
-            summary, patches = parse_reverse_patches(raw)
         except Exception as err:
             print(f"[warn] 역방향 LLM 호출 실패({pid} {title}): {err}")
             continue
 
+        halt_reason = ap.extract_halt_reason(raw)
+        if halt_reason:
+            print(f"[halt] {pid} ({title}) AI 판단으로 역방향 동기화 보류: {halt_reason}")
+            ap.send_slack_alert(
+                "AI 역방향 동기화 보류 (사람 확인 필요)",
+                halt_reason,
+                page_id=pid,
+                page_title=title,
+            )
+            return 1
+
+        summary, patches = parse_reverse_patches(raw)
         if not patches:
             print(f"[no-op] {pid} ({title}): {summary}")
             continue

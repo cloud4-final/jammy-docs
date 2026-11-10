@@ -12,10 +12,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install markdown-to-confluence==0.6.5
+      - name: guard-git-mass-deletion
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: >
+          python .github/scripts/check_docs.py README.md contracts.md decisions.md architecture.md mvp-roles.md
+          --require-page-id --blocks --max-lines 160 --guard-git-diff
       - name: pull-latest-from-confluence
         env:
           CONFLUENCE_DOMAIN: teamjammyjammy.atlassian.net
@@ -24,15 +32,17 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: python .github/scripts/pull_from_confluence.py --apply
       - name: auto-compact-and-commit-if-changed
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           python .github/scripts/compact_docs.py contracts.md decisions.md architecture.md mvp-roles.md --max-lines 160
-          python .github/scripts/check_docs.py README.md contracts.md decisions.md architecture.md mvp-roles.md --require-page-id --blocks --max-lines 160
+          python .github/scripts/check_docs.py README.md contracts.md decisions.md architecture.md mvp-roles.md --require-page-id --blocks --max-lines 160 --guard-git-diff
           if [ -n "$(git status --porcelain contracts.md decisions.md architecture.md mvp-roles.md)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -58,4 +68,11 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: python .github/scripts/ai_patch_confluence.py --apply
+      - name: notify-slack-on-failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          python -c "import sys; sys.path.insert(0, '.github/scripts'); import ai_patch_confluence as ap; ap.send_slack_alert('jammy-docs ↔ Confluence 양방향 동기화 중단 (워크플로 실패)', '대량 삭제 가드 발동, AI 사람 확인 요청(<halt>), 또는 문서 검증 실패로 동기화가 중단되었습니다. Actions 로그를 확인해 주세요.')"

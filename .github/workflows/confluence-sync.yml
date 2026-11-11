@@ -1,8 +1,9 @@
-# GitHub <-> Confluence 정기 양방향 동기화 (평일 KST 09·18시 및 수동 실행)
+# GitHub <-> Confluence 정기 양방향 동기화 (평일 KST 03·12시 및 수동 실행)
 name: confluence-sync
 on:
   schedule:
-    - cron: "0 0,9 * * 1-5"   # 평일 KST 09:00·18:00 (하루 2회)
+    - cron: "0 18 * * 0-4"  # 평일 KST 03:00 (UTC 일~목 18:00)
+    - cron: "0 3 * * 1-5"   # 평일 KST 12:00 (UTC 월~금 03:00)
   workflow_dispatch:
 concurrency: confluence-sync
 permissions:
@@ -59,7 +60,7 @@ jobs:
         run: >
           python -m md2conf README.md contracts.md decisions.md architecture.md mvp-roles.md
           --root-page 17334273 --skip-update --no-force-valid-url
-          --generated-by "GitHub cloud4-final/jammy-docs에서 자동 생성 · 직접 수정 금지 (평일 09·18시 및 수동 실행 시 양방향 갱신)"
+          --generated-by "GitHub cloud4-final/jammy-docs에서 자동 생성 · 직접 수정 금지 (평일 03·12시 및 수동 실행 시 양방향 갱신)"
       - name: ai-patch-linked-confluence-pages
         env:
           CONFLUENCE_DOMAIN: teamjammyjammy.atlassian.net

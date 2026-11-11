@@ -16,7 +16,7 @@ GitHub `cloud4-final/jammy-docs`는 3거점 하이브리드 프로젝트의 팀 
 2. 이 repo에 PR을 올린다. 작은 변경은 GitHub 웹에서 연필 아이콘으로 고쳐도 된다. 자기 AI에게 "jammy-docs에 반영 PR 올려줘"라고 시켜도 된다.
 3. 팀원 1명이 승인하면 merge된다. 승인이 곧 합의 기록이다.
 4. 코드 PR 본문에 이 PR 링크를 적는다. 링크한 jammy-docs PR이 아직 merge되지 않았으면 `docs-link-check`가 경고로 알려준다.
-5. 정기 양방향 동기화(`confluence-sync`, 평일 09·18시 및 수동 실행)가 Confluence 주요 문서의 최신 변경을 이 repo에 반영하고(사설 IP 마스킹 및 `docs-check` 검증 포함), Confluence `0. 공통 기준` 사본 및 연결된 기존 Confluence 문서도 양방향으로 최신화한다.
+5. 정기 양방향 동기화(`confluence-sync`, 평일 03·12시 및 수동 실행)가 Confluence 주요 문서의 최신 변경을 이 repo에 반영하고(사설 IP 마스킹 및 `docs-check` 검증 포함), Confluence `0. 공통 기준` 사본 및 연결된 기존 Confluence 문서도 양방향으로 최신화한다.
 
 ## 작성 규칙
 
@@ -40,7 +40,7 @@ GitHub `cloud4-final/jammy-docs`는 3거점 하이브리드 프로젝트의 팀 
 ## 읽는 곳
 
 - GitHub: 이 repo의 main
-- Confluence: `0. 공통 기준` (평일 09·18시 및 수동 실행 시 자동 갱신, 직접 수정 금지)
+- Confluence: `0. 공통 기준` (평일 03·12시 및 수동 실행 시 자동 갱신, 직접 수정 금지)
 - AI: 평소에는 읽지 않는다. 다른 파트와 함께 쓰는 값을 다루거나 내용이 서로 맞지 않을 때만, 각 코드 repo의 `AGENTS.md`에 따라 아래 raw URL에서 관련 분류만 읽는다.
   - `https://raw.githubusercontent.com/cloud4-final/jammy-docs/main/contracts.md`
   - `https://raw.githubusercontent.com/cloud4-final/jammy-docs/main/decisions.md`

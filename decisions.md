@@ -10,6 +10,14 @@
 - `status: active`만 적용한다. `status: superseded`는 적용하지 않고 `by`가 가리키는 결정을 따른다.
 - 같은 날짜 안에서는 번호가 클수록 나중 결정이다.
 
+### D-20261111-01 · CI plan 역할은 백업 버킷 객체를 읽지 못한다
+- decision: `jammy-gha-plan`은 AWS 관리형 `ReadOnlyAccess`를 유지하되, 인라인 정책 `deny-backup-object-read`로 백업 버킷(`jammy-hybrid-backup-2026/*`)의 `s3:GetObject*`를 명시적으로 거부한다.
+- implies: plan 역할에서 이 Deny를 빼거나 백업 객체 읽기를 허용하면 안 된다. 백업 버킷 `s3:ListBucket`은 plan(`HeadBucket`)에 필요하므로 유지한다(객체 이름은 보임). 새 민감 버킷을 만들면 같은 방식의 Deny를 검토한다. D-20261106-01을 보강하며 대체하지 않는다.
+- why: `ReadOnlyAccess`는 모든 객체 읽기를 허용해 PR에서 도는 CI가 DB 백업(전체 데이터)을 내려받을 수 있었고, AWS 관리형 정책은 일부 권한만 뺄 수 없어서
+- scope: AWS, CI/CD
+- status: active
+- source: Confluence 23789577, jammy-5th#31
+
 ### D-20261109-02 · AWS DB 사본은 MVP 범위 아님
 - decision: AWS에 DB 사본(복제본)을 상시로 두지 않는다. MVP 이후 여유가 있을 때만 시험용으로 백업 S3에서 pgBackRest로 복원해 띄우고, 시험이 끝나면 삭제한다.
 - implies: MVP 기간에는 AWS → 거점 DB 복제 경로(5432)와 ACL을 만들지 않는다. D-20261103-02의 "2순위 AWS 거점(추후)"은 이 시험용 거점을 뜻한다. 시험 전에는 C-DB-003(복구 검증 완료 표현 금지)을 그대로 지킨다. 시험을 하게 되면 복제 경로·ACL을 네트워크 담당(jiwon28)과 먼저 공유한다.

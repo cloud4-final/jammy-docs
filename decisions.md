@@ -10,6 +10,30 @@
 - `status: active`만 적용한다. `status: superseded`는 적용하지 않고 `by`가 가리키는 결정을 따른다.
 - 같은 날짜 안에서는 번호가 클수록 나중 결정이다.
 
+### D-20261118-01 · 입구 HAProxy 설정은 SSM 파라미터로 반영
+- decision: HAProxy 설정 원본은 jammy-5th `infra/aws/files/haproxy.cfg`이고, Terraform이 SSM 파라미터 `/jammy/edge/haproxy-cfg`로 올린다. 입구의 `haproxy-apply`(수신 → 빈 설정 검사 → `haproxy -c` → reload)가 부팅 때와 Run Command 실행 때 같은 방식으로 적용한다.
+- implies: HAProxy 설정만 바꿀 때는 입구를 교체하지 않는다. 순서는 코드 수정 → plan → apply → Run Command(사람이 실행)이고, 서버에 들어가 설정 파일을 손으로 고치면 안 된다. `haproxy-apply` 자체는 user_data 안에 있어 고치면 교체된다(D-20261103-03). `haproxy -c`는 문법만 검사하므로 잘못된 주소·포트는 헬스체크 DOWN으로 확인한다. D-20261103-03을 보강하며 대체하지 않는다.
+- why: 거점 목록이 바뀔 때마다 입구 2대를 교체하지 않기 위해서
+- scope: AWS
+- status: active
+- source: Confluence 33062945, jammy-5th#43, jammy-5th#44
+
+### D-20261117-01 · 입구 DNS는 Route 53 다중값 응답
+- decision: 도메인 `jammy.cloud`를 Route 53 호스팅 영역에 위임하고, 입구 2대마다 HTTP 80 헬스체크(30초 간격, 3회 실패)를 붙인 다중값 A 레코드(TTL 60)로 응답한다.
+- implies: 입구 1대 장애 시 사용자 반영까지 약 125초(최악 약 170초) 동안 일부 요청이 실패할 수 있고, 헬스체크가 모두 비정상이면 두 주소를 다 돌려준다(fail-open). 이를 MVP 한계로 수용한다. 줄이려면 10초 간격·TTL 단축을 검토한다(비용·오판 증가). 다중값은 정확한 부하 분산이 아니다(리졸버 캐시로 쏠림).
+- why: 입구 a가 죽으면 a 주소 사용자가 자동 전환되지 않는 문제를 비용이 적은 방식으로 줄이기 위해서
+- scope: AWS, 네트워크
+- status: active (2026-11-18 전환 시간 측정)
+- source: Confluence 30343170, 31359002, jammy-5th#35, jammy-5th#36
+
+### D-20261116-01 · HAProxy 목적지는 2거점(A·B)
+- decision: 거점 C를 HAProxy 목적지에서 뺀다. 목적지는 거점 A app VM 2대와 거점 B app VM 1대이고, 상태 확인은 `GET /`, 3초 간격, 3회 실패 DOWN, 2회 성공 UP이다. 연결 실패 요청은 다른 목적지로 다시 보낸다(`option redispatch`, `retries 2`). 모두 DOWN이면 2순위 AWS 거점(추후), 3순위 점검 페이지로 보낸다.
+- implies: C-PATH-001, C-ADDR-001. cp VM은 목적지에 넣지 않는다. 상태 페이지(8404)는 서버 안에서만 연다. 입구 → 거점 경로를 WireGuard로 바꿀 때의 목적지 주소 변경은 jammy-5th#46에서 따로 정한다.
+- why: 11-16 아키텍처에서 거점이 A(실시간 관제)·B(분석·재해 대비) 2곳으로 줄어서
+- scope: AWS, 네트워크, K8s
+- status: active
+- source: Confluence 28344332, jammy-5th#43, jammy-5th#44
+
 ### D-20261111-01 · CI plan 역할은 백업 버킷 객체를 읽지 못한다
 - decision: `jammy-gha-plan`은 AWS 관리형 `ReadOnlyAccess`를 유지하되, 인라인 정책 `deny-backup-object-read`로 백업 버킷(`jammy-hybrid-backup-2026/*`)의 `s3:GetObject*`를 명시적으로 거부한다.
 - implies: plan 역할에서 이 Deny를 빼거나 백업 객체 읽기를 허용하면 안 된다. 백업 버킷 `s3:ListBucket`은 plan(`HeadBucket`)에 필요하므로 유지한다(객체 이름은 보임). 새 민감 버킷을 만들면 같은 방식의 Deny를 검토한다. D-20261106-01을 보강하며 대체하지 않는다.
@@ -20,7 +44,7 @@
 
 ### D-20261109-02 · AWS DB 사본은 MVP 범위 아님
 - decision: AWS에 DB 사본(복제본)을 상시로 두지 않는다. MVP 이후 여유가 있을 때만 시험용으로 백업 S3에서 pgBackRest로 복원해 띄우고, 시험이 끝나면 삭제한다.
-- implies: MVP 기간에는 AWS → 거점 DB 복제 경로(5432)와 ACL을 만들지 않는다. D-20261103-02의 "2순위 AWS 거점(추후)"은 이 시험용 거점을 뜻한다. 시험 전에는 C-DB-003(복구 검증 완료 표현 금지)을 그대로 지킨다. 시험을 하게 되면 복제 경로·ACL을 네트워크 담당(jiwon28)과 먼저 공유한다.
+- implies: MVP 기간에는 AWS → 거점 DB 복제 경로(5432)와 ACL을 만들지 않는다. D-20261116-01의 "2순위 AWS 거점(추후)"은 이 시험용 거점을 뜻한다. 시험 전에는 C-DB-003(복구 검증 완료 표현 금지)을 그대로 지킨다. 시험을 하게 되면 복제 경로·ACL을 네트워크 담당(jiwon28)과 먼저 공유한다.
 - why: 상시 사본은 EC2 비용과 복제 경로·ACL·fencing을 늘려 MVP 일정과 예산에 부담이 되고, 시험용 복원만으로도 3거점 전체 중단 시험과 백업 복원 검증을 할 수 있어서
 - scope: AWS, 네트워크, DB
 - status: active
@@ -71,7 +95,8 @@
 - implies: C-PATH-001, C-ADDR-001. app VM 주소가 바뀌면 HAProxy 목적지도 함께 바꾼다. cp VM은 목적지에 넣지 않는다. 상태 페이지(8404)는 서버 안에서만 연다.
 - why: 거점이 준비될 때마다 입구를 교체하지 않기 위해서
 - scope: AWS, 네트워크, K8s
-- status: active
+- status: superseded
+- by: D-20261116-01
 - source: Confluence 12943383
 
 ### D-20261103-03 · 입구 EC2는 고치지 않고 교체

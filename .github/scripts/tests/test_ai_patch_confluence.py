@@ -7,7 +7,7 @@ import ai_patch_confluence as ap  # noqa: E402
 
 
 def test_extract_confluence_ids():
-    src = "Confluence 13467672, 16973840, jammy-collector README §3"
+    src = "Confluence 13467672, 16973840, jammy-application README §3"
     assert ap.extract_confluence_ids(src) == ["13467672", "16973840"]
 
 

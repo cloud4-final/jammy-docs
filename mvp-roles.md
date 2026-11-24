@@ -21,7 +21,7 @@
 ### M-MVP-002 · AWS 연계·대체 수집·파일 분리·burst MVP (M5~M7)
 - rule: M5(거점 장애 시 로컬 버퍼 및 API Gateway `/ingest` → SQS+DLQ 보관, 거점의 속도 제한 pull 재처리), M6(비공개 S3 + CloudFront OAC + 서명 링크를 통한 다운로드 분리), M7(온프레미스 용량 부족 시 readiness 확인 후 AWS EC2+k3s 부분 전환 및 복귀)을 준수해야 한다(MUST).
 - owner: Hongsh6414, YangJunMan, daji0713, jiwon28
-- scope: jammy-5th(`infra/aws/*`, `k8s/*`), jammy-collector
+- scope: jammy-5th(`infra/aws/*`, `k8s/*`), jammy-application
 - status: active
 - source: Confluence 3538951, 10813445
 
@@ -35,7 +35,7 @@
 ### M-MVP-004 · 운영 데이터 파이프라인·AI 추천 MVP (M10~M13)
 - rule: M10(거점·서비스·시간·요청 ID 기반 운영 로그 검색·오류 집계), M11(로그·지표 정제·품질 검사·재처리·버전 데이터셋 자동화), M12(작은 CPU 모델 1개 시간순 평가·기준선 비교·배포/롤백), M13(조회 API 지연 위험 및 실측 용량 기반 Pod 수 후보 추천·비교)을 범위로 한다(MUST).
 - owner: daji0713, YangJunMan
-- scope: jammy-5th, jammy-observability, jammy-collector
+- scope: jammy-5th, jammy-observability, jammy-application
 - status: superseded
 - by: M-MVP-006
 - source: Confluence 3538951, 13565982, 12779522, 12910594
@@ -71,9 +71,9 @@
 - source: Confluence 5374003, 10813468, 16973840
 
 ### M-ROLE-004 · 수집·조회 API·공통 CI/CD·통합 관측·부하 시험 (양준혁)
-- rule: 참조 이벤트 수집·조회 API(`jammy-collector`), 공통 GitHub Actions CI·GHCR 이미지 게시·Argo CD 배포 파이프라인, 거점 에이전트 및 관측 허브(`jammy-observability` Prometheus·Loki·Tempo·Grafana·Alertmanager), k6·iperf3 부하 및 장애 시험 자동화는 `YangJunMan`(서브: `daji0713`)이 담당한다.
+- rule: 참조 이벤트 수집·조회 API(`jammy-application`), 공통 GitHub Actions CI·GHCR 이미지 게시·Argo CD 배포 파이프라인, 거점 에이전트 및 관측 허브(`jammy-observability` Prometheus·Loki·Tempo·Grafana·Alertmanager), k6·iperf3 부하 및 장애 시험 자동화는 `YangJunMan`(서브: `daji0713`)이 담당한다.
 - owner: YangJunMan
-- scope: jammy-collector, jammy-observability, jammy-5th(`.github/workflows/*`, `loadtest/*`, `observability/*`)
+- scope: jammy-application, jammy-observability, jammy-5th(`.github/workflows/*`, `loadtest/*`, `observability/*`)
 - status: active
 - source: Confluence 5374003, 10715170
 
@@ -100,7 +100,7 @@
 ### M-MVP-006 · 운영 데이터·GPU 학습·CPU 추론·자원 추천 (M10~M13)
 - rule: M10(운영 로그 검색·오류 집계), M11(로그·지표 정제·품질·재처리·버전 데이터셋), M12(예측 모델 1개의 GPU 학습·시간순 평가·기준선 비교와 CPU 추론 배포/롤백), M13(조회 API 지연 위험·실측 용량 기반 Pod 후보 추천·비교)을 MVP 범위로 한다(MUST). GPU 학습·평가는 필수이며 CPU는 데이터 처리·API·추론을 맡는다. GPU 학습 시간·VRAM, CPU 추론 지연·RAM·출력 호환성을 검증하고 GPU 추론은 목표 지연·처리량 미달 시 추가 검토한다. 구현 범위이며 완료 주장은 아니다.
 - owner: daji0713, YangJunMan
-- scope: jammy-5th, jammy-observability, jammy-collector
+- scope: jammy-5th, jammy-observability, jammy-application
 - status: active
 - source: Confluence 3538951, 13565982, 4685838, 12910594
 

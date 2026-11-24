@@ -11,7 +11,7 @@
 ## 네트워크 대역
 ### C-NET-001 · 거점 VM 대역
 - rule: 거점 cp·app VM은 거점 VM 대역(`br-vm`)을 써야 한다(MUST). A 10.10.x.x/24, B 10.20.x.x/24, C 10.30.x.x/24, 게이트웨이 `.1`.
-- scope: jammy-5th(`infra/*`, `k8s/*`, `scripts/*`), jammy-observability(`site/*`, `hub/*`), jammy-collector(`deploy/*`) | violation: app VM 주소를 10.11.x.121로 지정 | status: active | source: Confluence 13467672
+- scope: jammy-5th(`infra/*`, `k8s/*`, `scripts/*`), jammy-observability(`site/*`, `hub/*`), jammy-application(`deploy/*`) | violation: app VM 주소를 10.11.x.121로 지정 | status: active | source: Confluence 13467672
 ### C-NET-002 · 거점 DB 대역
 - rule: data VM과 PostgreSQL은 DB 대역(`br-data`)만 써야 한다(MUST). A 10.11.x.x/24, B 10.21.x.x/24, C 10.31.x.x/24, 게이트웨이 `.1`.
 - scope: DB 주소를 쓰는 모든 설정(`DATABASE_URL`, Secret, 방화벽, 관측 target) | violation: DB 주소 10.10.x.130 (망 분리 전 주소) | status: active | source: D-20261104-01
@@ -45,7 +45,7 @@
 - scope: jammy-5th(`infra/aws/*`, HAProxy 설정, `k8s/*`) | violation: HAProxy 목적지에 cp VM(.110) 추가 | status: active | source: Confluence 12943383, 13467672
 ### C-PATH-002 · 앱 → DB
 - rule: app VM은 같은 거점 data VM의 5432에 접속한다. 쓰기는 원본 A(10.11.x.130:5432)로 간다. 다른 거점 app VM → 원본 5432 경로가 필요하다.
-- scope: jammy-collector(`DATABASE_URL`), jammy-5th(방화벽, `k8s/*` Secret) | violation: B app의 `DATABASE_URL`이 10.21.x.130을 쓰기 원본으로 지정 | status: active | source: Confluence 13467672, 16973840
+- scope: jammy-application(`DATABASE_URL`), jammy-5th(방화벽, `k8s/*` Secret) | violation: B app의 `DATABASE_URL`이 10.21.x.130을 쓰기 원본으로 지정 | status: active | source: Confluence 13467672, 16973840
 ### C-PATH-003 · DB 복제
 - rule: data VM ↔ 다른 거점 data VM(`tag:db`)은 5432로 복제한다. A가 원본이고 B·C는 비동기 streaming 사본이다.
 - scope: PostgreSQL 설정, 방화벽 | violation: B·C 사본에 쓰기 설정 | status: active | source: Confluence 16973840
@@ -71,27 +71,27 @@
 ## 이름과 태그
 ### C-NAME-001 · 거점 식별자
 - rule: 거점 식별자는 `jammy-a`, `jammy-b`, `jammy-c`, `jammy-obs`다. 호스트 이름, 관측 label `site`, 앱 env `SITE_ID`에 같은 값을 써야 한다(MUST).
-- scope: 모든 repo | violation: label `site="A"` 또는 `SITE_ID=site-a` | status: active | source: jammy-observability README §2, jammy-collector README §2
+- scope: 모든 repo | violation: label `site="A"` 또는 `SITE_ID=site-a` | status: active | source: jammy-observability README §2, jammy-application README §2
 ### C-NAME-002 · Tailscale 태그
 - rule: 장비 태그는 거점 호스트 `tag:site`, AWS 입구 `tag:edge`, 관리 인스턴스 `tag:mgmt`, 관측 노트북 `tag:obs`, DB `tag:db`, burst `tag:burst`다. 관측 노트북에 `tag:site`를 붙이면 안 된다(MUST NOT). 태그는 netadmin(jiwon28, Hongsh6414)만 붙인다.
 - scope: Tailscale ACL, AWS user_data | violation: 새 관리 서버에 `tag:site` 부여 | status: active | source: Confluence 13467672
 
 ## collector API
 ### C-API-001 · 이미지와 포트
-- rule: collector 이미지는 `ghcr.io/cloud4-final/jammy-collector:sha-<commit>`이다(main merge 시 자동 게시). 컨테이너 포트는 8000이다. 배포는 `latest` 대신 `sha-` tag를 써야 한다(MUST).
-- scope: jammy-5th `k8s/*`, jammy-observability `hub/*`(demo), jammy-collector `deploy/*` | violation: `image: ghcr.io/cloud4-final/jammy-collector:latest` | status: active | source: jammy-collector README §1
+- rule: collector 이미지는 `ghcr.io/cloud4-final/jammy-application:sha-<commit>`이다(main merge 시 자동 게시). 컨테이너 포트는 8000이다. 배포는 `latest` 대신 `sha-` tag를 써야 한다(MUST).
+- scope: jammy-5th `k8s/*`, jammy-observability `hub/*`(demo), jammy-application `deploy/*` | violation: `image: ghcr.io/cloud4-final/jammy-application:latest` | status: active | source: jammy-application README §1
 ### C-API-002 · region 값
 - rule: 요청 필드 `region`은 `aws`, `site-a`, `site-b`, `site-c` 중 하나여야 한다(MUST). `SITE_ID`(`jammy-a`)와 섞으면 안 된다(MUST NOT). 다르면 400이 난다.
-- scope: collector `POST /api/v1/events`를 호출하는 모든 코드 | violation: `"region": "jammy-a"` | status: active | source: jammy-collector README §3
+- scope: collector `POST /api/v1/events`를 호출하는 모든 코드 | violation: `"region": "jammy-a"` | status: active | source: jammy-application README §3
 ### C-API-003 · endpoint
 - rule: `POST /api/v1/events`(신규 201 `accepted`, 중복 `event_id` 200 `duplicate`, 잘못된 `region` 400, DB 장애 503; 필드 `event_id`, `region`, `vehicle_id`, `speed_kmh`, `payload`), `GET /api/v1/events/{event_id}`(200/404/503), `GET /api/v1/events`(200 `{"items", "count"}`, `limit` 초과 422), `GET /healthz`, `GET /ready`(DB 실패 503), `GET /metrics`. 바꾸면 breaking change다.
-- scope: jammy-collector `src/*`, collector 호출 코드 | violation: 중복 이벤트에 409 반환으로 변경 | status: active | source: jammy-collector README §3
+- scope: jammy-application `src/*`, collector 호출 코드 | violation: 중복 이벤트에 409 반환으로 변경 | status: active | source: jammy-application README §3
 ### C-API-004 · env
 - rule: 필수 env는 `DATABASE_URL`(쓰기 원본). 선택 env는 `DATABASE_READ_URL`, `SITE_ID`, `DEPLOY_ENV`(`dev`/`stage`/`prod`), `DB_POOL_MIN`, `DB_POOL_MAX`, `OTEL_SERVICE_NAME`(기본 `mobility-collector`), `OTEL_EXPORTER_OTLP_ENDPOINT`. 승격 때는 코드 변경 없이 Secret의 `DATABASE_URL`·`DATABASE_READ_URL`만 바꾼다(MUST).
-- scope: jammy-collector, jammy-5th `k8s/*` | violation: env 이름 `DB_URL` 사용 | status: active | source: jammy-collector README §2, §4
+- scope: jammy-application, jammy-5th `k8s/*` | violation: env 이름 `DB_URL` 사용 | status: active | source: jammy-application README §2, §4
 ### C-API-005 · 로그의 payload
 - rule: `payload` 원문을 로그에 남기면 안 된다(MUST NOT).
-- scope: jammy-collector, collector 로그 관측 설정 | violation: `logger.info(payload)` | status: active | source: jammy-collector README §5
+- scope: jammy-application, collector 로그 관측 설정 | violation: `logger.info(payload)` | status: active | source: jammy-application README §5
 ### C-API-006 · HAProxy health 경로
 - rule: HAProxy는 지금 app VM의 `GET /`(80)을 확인한다. 정할 것: Traefik이 컨테이너 8000으로 연결하는 경로, HAProxy가 `/healthz`와 `/ready` 중 무엇을 확인할지.
 - status: open | owner: YangJunMan, Hongsh6414 | source: Confluence 12943383
@@ -99,7 +99,7 @@
 ## DB
 ### C-DB-001 · 원본과 마이그레이션
 - rule: 쓰기 원본은 A(10.11.x.130:5432)다. 마이그레이션(`python -m src.migrate`)은 쓰기 원본에만 실행해야 한다(MUST).
-- scope: jammy-collector, jammy-5th `k8s/*`(Job, initContainer) | violation: 모든 거점 Pod 시작 시 마이그레이션 실행 | status: active | source: jammy-collector README §4, Confluence 16973840
+- scope: jammy-application, jammy-5th `k8s/*`(Job, initContainer) | violation: 모든 거점 Pod 시작 시 마이그레이션 실행 | status: active | source: jammy-application README §4, Confluence 16973840
 ### C-DB-002 · 승격
 - rule: 사본 승격은 기존 원본 격리와 쓰기 원본 1개 확인을 포함한 공동 절차로만 해야 한다(MUST). 자동 승격 코드를 단독으로 추가하면 안 된다(MUST NOT). 담당은 HYE0NWEST, jiwon28, daji0713이다.
 - scope: 모든 repo | violation: 장애 감지 시 B를 자동 승격하는 script | status: active | source: Confluence 12943361
@@ -113,7 +113,7 @@
 ## 관측
 ### C-OBS-001 · label
 - rule: metric label은 `site`(C-NAME-001 값), `layer`(`host`, `vm`, `k8s-node`, `pod`, `app`), `vantage`(관측 시점 거점, 거점 내부 수집은 `""`), `target_site`(블랙박스 대상 거점)를 쓴다(MUST).
-- scope: jammy-observability, jammy-collector `/metrics`, jammy-5th 관측 설정 | violation: label `host_site` 사용 | status: active | source: jammy-observability README §2
+- scope: jammy-observability, jammy-application `/metrics`, jammy-5th 관측 설정 | violation: label `host_site` 사용 | status: active | source: jammy-observability README §2
 ### C-OBS-002 · 고유 ID label 금지
 - rule: `event_id`, `vehicle_id`, `trace_id` 같은 고유 ID를 metric label에 넣으면 안 된다(MUST NOT). 고유 ID는 Loki 로그와 Tempo trace로만 추적한다.
 - scope: metric을 만드는 모든 코드 | violation: `counter.labels(vehicle_id=...)` | status: active | source: jammy-observability README §2
